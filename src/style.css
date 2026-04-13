@@ -1,0 +1,252 @@
+/* ===== Reset & Base ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a0f;
+  color: #fff;
+  font-family: 'Arial', sans-serif;
+  font-size: 16px;
+}
+
+/* ===== Screens ===== */
+.screen {
+  display: none;
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  inset: 0;
+}
+
+.screen.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Grid Screen ===== */
+#screen-grid {
+  padding: 48px 80px;
+  gap: 0;
+}
+
+.grid-header {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 48px;
+  flex-shrink: 0;
+}
+
+.app-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.live-dot-header {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ff4444;
+  letter-spacing: 0.1em;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  align-content: start;
+  outline: none;
+}
+
+/* ===== Channel Card ===== */
+.channel-card {
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  outline: none;
+  border: 3px solid transparent;
+  transform: scale(1);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  background: #14141e;
+}
+
+.channel-card.focused {
+  border-color: #fff;
+  transform: scale(1.04);
+}
+
+.card-banner {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-short-name {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  letter-spacing: 0.04em;
+}
+
+.card-body {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.card-live-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ff4444;
+  letter-spacing: 0.12em;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+/* ===== Player Screen ===== */
+#screen-player {
+  position: fixed;
+  inset: 0;
+  background: #000;
+}
+
+#video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ===== Loading Spinner ===== */
+.loading-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10;
+}
+
+.loading-spinner[hidden] {
+  display: none;
+}
+
+.spinner {
+  width: 72px;
+  height: 72px;
+  border: 6px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+/* ===== Error Overlay ===== */
+.error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 10;
+}
+
+.error-overlay[hidden] {
+  display: none;
+}
+
+.error-box {
+  text-align: center;
+  padding: 48px 64px;
+  background: rgba(20, 20, 30, 0.95);
+  border-radius: 16px;
+  border: 2px solid rgba(255, 68, 68, 0.5);
+}
+
+.error-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 16px;
+  color: #ff4444;
+}
+
+#error-message {
+  font-size: 1.4rem;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.error-hint {
+  font-size: 1rem;
+  color: #888;
+}
+
+/* ===== Player Overlay ===== */
+.player-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 64px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.player-overlay.visible {
+  opacity: 1;
+}
+
+.overlay-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.overlay-channel-name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+
+.overlay-live-badge {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ff4444;
+  letter-spacing: 0.12em;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 12px;
+  border-radius: 4px;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+/* ===== Animations ===== */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
