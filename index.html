@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es-AR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=1920" />
-  <title>Fuchibol TV</title>
+  <title>Argentina TV</title>
   <script src="https://cdn.jsdelivr.net/npm/shaka-player@4/dist/shaka-player.compiled.js"></script>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
@@ -11,15 +11,11 @@
   <!-- Channel Grid Screen -->
   <div id="screen-grid" class="screen active">
     <header class="grid-header">
-      <span class="app-title">Fuchibol TV</span>
+      <span class="app-title">Argentina TV</span>
       <span class="live-dot-header">&#9679; EN VIVO</span>
     </header>
-    <section id="agenda-section" class="agenda-section" hidden>
-      <h2 class="agenda-title">Hoy en vivo</h2>
-      <div id="agenda-list" class="agenda-list"></div>
-    </section>
 
-    <div id="channel-grid" class="channel-grid" role="grid" aria-label="Canales"></div>
+    <div id="channel-grid" class="channel-grid" role="grid" aria-label="Grilla de canales en vivo"></div>
   </div>
 
   <!-- Player Screen -->
@@ -34,7 +30,6 @@
       <div class="error-box">
         <span class="error-icon">⚠</span>
         <p id="error-message">Error al cargar el canal</p>
-        <p class="error-hint">Presione ESC para volver</p>
       </div>
     </div>
 
