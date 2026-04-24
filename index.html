@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920" />
+  <title>Fuchibol TV</title>
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4/dist/shaka-player.compiled.js"></script>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- Channel Grid Screen -->
+  <div id="screen-grid" class="screen active">
+    <header class="grid-header">
+      <span class="app-title">Fuchibol TV</span>
+      <span class="live-dot-header">&#9679; EN VIVO</span>
+    </header>
+    <section id="agenda-section" class="agenda-section" hidden>
+      <h2 class="agenda-title">Hoy en vivo</h2>
+      <div id="agenda-list" class="agenda-list"></div>
+    </section>
+
+    <div id="channel-grid" class="channel-grid" role="grid" aria-label="Canales"></div>
+  </div>
+
+  <!-- Player Screen -->
+  <div id="screen-player" class="screen">
+    <video id="video" autoplay playsinline></video>
+
+    <div id="loading-spinner" class="loading-spinner" hidden>
+      <div class="spinner"></div>
+    </div>
+
+    <div id="error-overlay" class="error-overlay" hidden>
+      <div class="error-box">
+        <span class="error-icon">⚠</span>
+        <p id="error-message">Error al cargar el canal</p>
+        <p class="error-hint">Presione ESC para volver</p>
+      </div>
+    </div>
+
+    <div id="player-overlay" class="player-overlay">
+      <div class="overlay-content">
+        <span id="overlay-channel-number" class="overlay-channel-number"></span>
+        <span id="overlay-channel-name" class="overlay-channel-name"></span>
+        <span class="overlay-live-badge">&#9679; EN VIVO</span>
+      </div>
+    </div>
+
+    <div id="guide-overlay" class="guide-overlay" hidden>
+      <div class="guide-header">Guía de canales</div>
+      <div id="guide-list" class="guide-list"></div>
+    </div>
+  </div>
+
+  <div id="back-press-tooltip" class="back-press-tooltip" hidden>
+    Presiona Back dos veces para salir
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
