@@ -8,6 +8,7 @@ export interface Channel {
   keyId: string
   key: string
   getManifestUrl: () => string
+  fallback?: { url: string; keyId: string; key: string }
 }
 
 const mtRed = ['cdnlb', 'cdn02', 'cdn03']
@@ -114,6 +115,7 @@ function createChannel(config: {
   keyId: string
   key: string
   path: string
+  fallback?: { url: string; keyId: string; key: string }
 }): Channel {
   return {
     id: config.id,
@@ -125,6 +127,30 @@ function createChannel(config: {
     keyId: config.keyId,
     key: config.key,
     getManifestUrl: () => buildGigaredManifest(config.path),
+    fallback: config.fallback,
+  }
+}
+
+function createCvattvChannel(config: {
+  id: string
+  name: string
+  shortName: string
+  color: string
+  number: number
+  keyId: string
+  key: string
+  url: string
+}): Channel {
+  return {
+    id: config.id,
+    name: config.name,
+    shortName: config.shortName,
+    color: config.color,
+    number: config.number,
+    image: CHANNEL_IMAGE_BY_NUMBER[config.number] ?? null,
+    keyId: config.keyId,
+    key: config.key,
+    getManifestUrl: () => config.url,
   }
 }
 
@@ -138,6 +164,7 @@ export const channels: Channel[] = [
     keyId: '32392e5868873c91ca77a0406b3d32d8',
     key: '0f74f66dbeda0bb43b32445ea74d2087',
     path: '/live/eds/AmericaTV/sa_live_dash/AmericaTV.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/AmericaTV/SA_Live_dash_cenc/AmericaTV.mpd', keyId: '8ea235ce0826408b221c498115a9b62d', key: '7aa9266ed91ea4510483370029dfcf45' },
   }),
   createChannel({
     id: 'telefe',
@@ -148,6 +175,7 @@ export const channels: Channel[] = [
     keyId: '865b35fdb4c119f3ccfd4ee392928aef',
     key: 'b43adf6d88b3befbf7f69a71dc273e46',
     path: '/live/eds/Telefe/sa_live_dash/Telefe.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/TelefeHD/SA_Live_dash_cenc/TelefeHD.mpd', keyId: '3cec1b1ea9799dda5596e64f37e5ed20', key: 'c69f3afde2085dcaaaddbf55246a0323' },
   }),
   createChannel({
     id: 'tv-publica',
@@ -158,6 +186,7 @@ export const channels: Channel[] = [
     keyId: 'f50f7ac8cca2bcb40bf4a895b6378cea',
     key: '0ca9392a44d0c0ff79abc01c15df8888',
     path: '/live/eds/TV_Publica/sa_live_dash/TV_Publica.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Canal7/SA_Live_dash_cenc/Canal7.mpd', keyId: 'cc8c82ac2ec7e9799527c29db7354e81', key: 'cc4aae173dd2ef17ae26be3f7ae87662' },
   }),
   createChannel({
     id: 'canal-9',
@@ -168,6 +197,7 @@ export const channels: Channel[] = [
     keyId: 'eaecaad505a66fab4161959099767384',
     key: 'ca66afd7ba0f3ce767b698b5e94c84e3',
     path: '/live/eds/Canal_9/sa_live_dash/Canal_9.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/Canal9/SA_Live_dash_cenc/Canal9.mpd', keyId: '24f4ff211136ae6512a1b552200db405', key: '602122f8426c5c942b8c18d299cc6020' },
   }),
   createChannel({
     id: 'tn',
@@ -178,6 +208,7 @@ export const channels: Channel[] = [
     keyId: 'c5bb6f9ef3b632b7ba2797048b4941a0',
     key: '53f33a7ab0729daee5dbe8ecc8ee2c08',
     path: '/live/eds/TN/sa_live_dash/TN.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/TodoNoticias/SA_Live_dash_cenc/TodoNoticias.mpd', keyId: '7ceb1cd0622cd7e88fcdc99fe3a55de6', key: '951637093d41c7388a1ef3f620cfea21' },
   }),
   createChannel({
     id: 'lnmas',
@@ -188,6 +219,7 @@ export const channels: Channel[] = [
     keyId: 'ffbe99278cd1aea87b3506d1c06defd6',
     key: 'fa8d96b8c2d97390ab329241a4e651ae',
     path: '/live/eds/LNmas/sa_live_dash/LNmas.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/La_Nacion/SA_Live_dash_cenc/La_Nacion.mpd', keyId: 'f4eade7bbc39b25402acfa301bbad04a', key: 'a74d1df4235a74878327aa8d53ff283c' },
   }),
   createChannel({
     id: 'c5n',
@@ -198,6 +230,7 @@ export const channels: Channel[] = [
     keyId: 'a4b47d87494bd17dd7acf86ebb6c3a32',
     key: '5df76e3d86d8d88799c52eae263d08b0',
     path: '/live/eds/C5N/sa_live_dash/C5N.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/C5N/SA_Live_dash_cenc/C5N.mpd', keyId: '050df5c6e78c774e78c3e99eef8a1b29', key: '0e4141d6ab21a36cbc4da777ab3096d4' },
   }),
   createChannel({
     id: 'cronica-tv',
@@ -208,6 +241,7 @@ export const channels: Channel[] = [
     keyId: '2932730b9b35ad5ded0e4d96af122676',
     key: '57f01dd4f21f8786352399c80d36caf8',
     path: '/live/eds/CronicaTV/sa_live_dash/CronicaTV.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/CronicaTV/SA_Live_dash_cenc/CronicaTV.mpd', keyId: '745e7abcc90d41ab706b2ac2f4371da3', key: '50acd9d19d1361cb4a8a13a867bdc352' },
   }),
   createChannel({
     id: 'canal-26',
@@ -218,6 +252,7 @@ export const channels: Channel[] = [
     keyId: 'e9a29d60110b731c5f3a141084379a40',
     key: '8dcb1a09a6007fe72d621a09017276ba',
     path: '/live/eds/Canal26/sa_live_dash/Canal26.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/26_TV_HD/SA_Live_dash_cenc/26_TV_HD.mpd', keyId: 'e32aaa4b67430b3b51be1efce5a74ac5', key: 'ad60c5e1d378a97271bf8688f094d092' },
   }),
   createChannel({
     id: 'a24',
@@ -228,6 +263,7 @@ export const channels: Channel[] = [
     keyId: 'c43779fa115f80c118c29665cc78e4ba',
     key: '4303ea7157eb2e6f6ce980bb87183825',
     path: '/live/eds/A24/sa_live_dash/A24.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/America24/SA_Live_dash_cenc/America24.mpd', keyId: '3b1b027dd011af20fd9956c16dc084fb', key: '45f75aacf06593c9b693fe427c67e5b8' },
   }),
   createChannel({
     id: 'deportv',
@@ -238,6 +274,7 @@ export const channels: Channel[] = [
     keyId: '5f8bcea8ec9fdd5e6927e46ce856824b',
     key: '3cf09d0c9ebeab2edfe600887e61b368',
     path: '/live/eds/DeporTV/sa_live_dash/DeporTV.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/DeporTVHD/SA_Live_dash_cenc/DeporTVHD.mpd', keyId: 'f362097815892a4b83950f1d106ff0b2', key: '4349e42e81c31a8389f4a42fcd298928' },
   }),
   createChannel({
     id: 'tyc-sports',
@@ -248,6 +285,7 @@ export const channels: Channel[] = [
     keyId: 'cac7b52cb14661fe3db0449020791d97',
     key: '0c2780acce4ef9d7334ef25be445ceb4',
     path: '/live/eds/TyC_Sports/sa_live_dash/TyC_Sports.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/TyCSport/SA_Live_dash_cenc/TyCSport.mpd', keyId: '2b21c8fa9a329cce311a4c4a4aa996a1', key: 'cc23ea1fb32629f9e1f48c8deeae3e5b' },
   }),
   createChannel({
     id: 'espn',
@@ -258,6 +296,7 @@ export const channels: Channel[] = [
     keyId: '8b55a3ba068f882f49b36d216f29506f',
     key: '77f418bbcfc73739ebca9c52321472d3',
     path: '/live/eds/ESPN/sa_live_dash/ESPN.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/ESPNHD/SA_Live_dash_cenc/ESPNHD.mpd', keyId: 'cc8d44406ed6bf1898ad9f7a2d64f29e', key: 'fb85d059687ab0fc67805806204edbdf' },
   }),
   createChannel({
     id: 'espn-2',
@@ -268,6 +307,7 @@ export const channels: Channel[] = [
     keyId: '02819f905f4e126d492693e44c688b82',
     key: 'a12adec960cd1e33ad3b8ddbf0dd22b9',
     path: '/live/eds/ESPN2/sa_live_dash/ESPN2.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/ESPN2HD/SA_Live_dash_cenc/ESPN2HD.mpd', keyId: 'e884b711ab111beb8a7ba1e7bcbdc9bf', key: 'cb89ee3961599e3e648a5aad60895f34' },
   }),
   createChannel({
     id: 'espn-3',
@@ -278,6 +318,7 @@ export const channels: Channel[] = [
     keyId: 'ad0c72e30648501377425a62a2bf095c',
     key: '2cfbc73f423203a9fc8a1d983ec4e8bb',
     path: '/live/eds/ESPN3/sa_live_dash/ESPN3.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/ESPN3/SA_Live_dash_cenc/ESPN3.mpd', keyId: 'f4c9f97e2a36feab0e5077f2b44cbc4e', key: '1743cd03dfe3736b2c95da91a783af38' },
   }),
   createChannel({
     id: 'espn-4',
@@ -288,6 +329,7 @@ export const channels: Channel[] = [
     keyId: 'ecafef3b8979c737d05ea191a02b7617',
     key: 'f46cd12052b0da221a3a178e2bde0162',
     path: '/live/eds/ESPN4/sa_live_dash/ESPN4.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/ESPN4/SA_Live_dash_cenc/ESPN4.mpd', keyId: '24f2b3e741f0d9e9a8d516faff38bddc', key: 'bbd3fd02fb104e1463ac528a13f67e4a' },
   }),
   createChannel({
     id: 'fox-sports',
@@ -298,6 +340,7 @@ export const channels: Channel[] = [
     keyId: '6c0016fff15fcc3cc5d103f821189100',
     key: '94d789ac388ccbbfbd2cf91d5b7db028',
     path: '/live/eds/Fox_Sports/sa_live_dash/Fox_Sports.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/FoxSports/SA_Live_dash_cenc/FoxSports.mpd', keyId: 'cbc2a0c7a38df0aa3333cd71841d3b0d', key: 'aac61b730e2ac1df23f1e872e7541c1b' },
   }),
   createChannel({
     id: 'fox-sports-2',
@@ -308,6 +351,7 @@ export const channels: Channel[] = [
     keyId: 'a2e448d00073c0a66e02caa20a2fe135',
     key: '70e9e4adfb2f0b5ac127654c1a56d238',
     path: '/live/eds/Fox_Sports_2/sa_live_dash/Fox_Sports_2.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/FoxSports2HD/SA_Live_dash_cenc/FoxSports2HD.mpd', keyId: 'c98ddffc470fe449ae1a8d6492116976', key: '5086d370e840010232cf4532b16e197f' },
   }),
   createChannel({
     id: 'fox-sports-3',
@@ -318,6 +362,7 @@ export const channels: Channel[] = [
     keyId: 'f2f0d2f5e823bf3bd1113ed83b244c57',
     key: 'addd4c11afb303beb21f95f79a935561',
     path: '/live/eds/Fox_Sports_3/sa_live_dash/Fox_Sports_3.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/FoxSports3HD/SA_Live_dash_cenc/FoxSports3HD.mpd', keyId: '55b47390cf9e4997dae6dac85e057875', key: 'fa39e855543c5d70f30600d59e5e4c1b' },
   }),
   createChannel({
     id: 'el-garage',
@@ -328,6 +373,7 @@ export const channels: Channel[] = [
     keyId: 'c44389e1e90fb4d80e0a0d8090f8da1f',
     key: '7bdf6460869276e70bd3eae576be2286',
     path: '/live/eds/El_Garage/sa_live_dash/El_Garage.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/El_Garage/SA_Live_dash_cenc/El_Garage.mpd', keyId: '03d1dfb8df034d8b81e57753df00a36d', key: '08d83660db4a73bb1d61d60b09df5f4d' },
   }),
   createChannel({
     id: 'discovery-turbo',
@@ -338,8 +384,9 @@ export const channels: Channel[] = [
     keyId: '55b1aff18cff06f311d2f53145c0a748',
     key: '7556d7b06fa5f94c7501c8956a764931',
     path: '/live/eds/Discovery_Turbo/sa_live_dash/Discovery_Turbo.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/DiscoveryTurbo/SA_Live_dash_cenc/DiscoveryTurbo.mpd', keyId: 'a611ddbf8c15fa617a0c391cb7b3e128', key: '0cd1300baf8890380fd41124962195c4' },
   }),
-    createChannel({
+  createChannel({
     id: 'espn-premium',
     name: 'ESPN Premium',
     shortName: 'ESPN+',
@@ -347,7 +394,7 @@ export const channels: Channel[] = [
     color: '#cc0000',
     keyId: 'dca96877c202470bdad9839bea525c0a',
     key: 'd651871131d4b26f0095bcb9771b8f2f',
-  path:'/live/eds/ESPN_Premium/sa_live_dash/ESPN_Premium.mpd',
+    path: '/live/eds/ESPN_Premium/sa_live_dash/ESPN_Premium.mpd',
   }),
   createChannel({
     id: 'tnt-sports',
@@ -358,6 +405,7 @@ export const channels: Channel[] = [
     keyId: 'f26eb059fb0854f4d4218c895d7ae803',
     key: 'ffcb3fd4bd5657889215be4cb6275d1b',
     path: '/live/eds/TNT_Sports_Premium/sa_live_dash/TNT_Sports_Premium.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/TNT_Sports_HD/SA_Live_dash_cenc/TNT_Sports_HD.mpd', keyId: 'bc80fa3da696e503f940fde5f681a1c5', key: 'ea46e4e9f1132e8dd71fb77f7d55058a' },
   }),
   createChannel({
     id: 'paka-paka',
@@ -368,6 +416,7 @@ export const channels: Channel[] = [
     keyId: '0aa7687e39e7e7e2e3d64d87a2fa1920',
     key: '523cc84985fadae95289dd88838133c9',
     path: '/live/eds/PakaPaka/sa_live_dash/PakaPaka.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/PAKA_PAKA/SA_Live_dash_cenc/PAKA_PAKA.mpd', keyId: '334001b2f2644df9bdf35e92d2b89f8f', key: '475ec87d86ed0636dbb6d6d9d4a43bb7' },
   }),
   createChannel({
     id: 'disney-channel',
@@ -378,6 +427,7 @@ export const channels: Channel[] = [
     keyId: '629f78368829802ade506b8f03e2d18b',
     key: '6824ea53d6fd70d146b9e31a57cf3a20',
     path: '/live/eds/Disney_Channel/sa_live_dash/Disney_Channel.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/DisneyChannelHD/SA_Live_dash_cenc/DisneyChannelHD.mpd', keyId: '4a742e478d14023e1993e011d9415f94', key: '0df77ede9bc744376836d21afa137dda' },
   }),
   createChannel({
     id: 'disney-junior',
@@ -388,6 +438,7 @@ export const channels: Channel[] = [
     keyId: '0eabe9f5aee4020c50f52a2bf476ac57',
     key: '490fc8a1a900893d20631da45412879d',
     path: '/live/eds/Disney_Junior/sa_live_dash/Disney_Junior.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/DisneyJr/SA_Live_dash_cenc/DisneyJr.mpd', keyId: 'bd29c4a538f28845ce33581111749428', key: '46d9589f41a11c3637c07c604956deac' },
   }),
   createChannel({
     id: 'nickelodeon',
@@ -398,6 +449,7 @@ export const channels: Channel[] = [
     keyId: '611595b6387cdcfb67ce564768fd61aa',
     key: 'dd5fba9ab529822129c09c029b28651c',
     path: '/live/eds/Nickelodeon/sa_live_dash/Nickelodeon.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/Nickelodeon/SA_Live_dash_cenc/Nickelodeon.mpd', keyId: '61c18cefecc2d067beaa9ff181305345', key: '38d6f650cbf9a38fd9f35c01f98e647a' },
   }),
   createChannel({
     id: 'discovery-kids',
@@ -408,6 +460,7 @@ export const channels: Channel[] = [
     keyId: '1f92dc6055aefecb8a2abdba9ecf65cb',
     key: '23a68bb309729298ceb3b5fcd3ff174d',
     path: '/live/eds/Discovery_Kids/sa_live_dash/Discovery_Kids.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Discovery_Kids/SA_Live_dash_cenc/Discovery_Kids.mpd', keyId: 'ffb2f0f63c23a3592d4653e938b9ca19', key: 'd3661ae881fc55fc7a15815cd439747b' },
   }),
   createChannel({
     id: 'plim-plim',
@@ -418,6 +471,7 @@ export const channels: Channel[] = [
     keyId: '44292917d1f5519af4598ccfc66b53dd',
     key: 'f90cee2e43e02176113cff8ccf09465e',
     path: '/live/eds/Plim_Plim/sa_live_dash/Plim_Plim.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Plim_Plim/SA_Live_dash_cenc/Plim_Plim.mpd', keyId: '8e88e1572dcd2b31a10026668d628d61', key: 'ab95bdc2655aff4f4a8e512fb68c80df' },
   }),
   createChannel({
     id: 'zoo-moo',
@@ -448,6 +502,7 @@ export const channels: Channel[] = [
     keyId: 'ed9cb36b2c7ab639bb5b8627b2e980e8',
     key: 'a0d844faf1c31330165393e43e0d3bd8',
     path: '/live/eds/Cinecanal/sa_live_dash/Cinecanal.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/CinecanalHD/SA_Live_dash_cenc/CinecanalHD.mpd', keyId: '6003e92dd0d9f548329015c9e15dd578', key: '213cf85cb5f9fe569757004a77e05948' },
   }),
   createChannel({
     id: 'tnt',
@@ -458,6 +513,7 @@ export const channels: Channel[] = [
     keyId: '9d9e8eb8d97c4ff0dbfb02c3c417ae48',
     key: 'a426cb9e3ff4cac8b2e153ef54e69072',
     path: '/live/eds/TNT/sa_live_dash/TNT.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/TNT_HD_Arg/SA_Live_dash_cenc/TNT_HD_Arg.mpd', keyId: 'faad1722a575f4d9ec7b774db63c879c', key: 'cf0184830344ba36ad2ffef9dd2dd9d0' },
   }),
   createChannel({
     id: 'fx',
@@ -468,6 +524,7 @@ export const channels: Channel[] = [
     keyId: 'b060d6864d9b870b3a5f43c10370977c',
     key: '7a9104e80a2bd14429ad4c877a9926b5',
     path: '/live/eds/FX/sa_live_dash/FX.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/FXHD/SA_Live_dash_cenc/FXHD.mpd', keyId: '9ab9c42c713e0fb5517dc77cc19d6755', key: 'd8c271b82387e609b6c19e5e79240aff' },
   }),
   createChannel({
     id: 'star-channel',
@@ -478,6 +535,7 @@ export const channels: Channel[] = [
     keyId: 'ba8e3594a2280a1f0b749d66dccfab99',
     key: 'efa66c01f0e96775398994f1754be46b',
     path: '/live/eds/Star_Channel/sa_live_dash/Star_Channel.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/FOXHD/SA_Live_dash_cenc/FOXHD.mpd', keyId: '8023e85ef9d17561ee1b424179b1b15e', key: '477ad189f1fcd2baec026068107f862f' },
   }),
   createChannel({
     id: 'sony-channel',
@@ -488,6 +546,7 @@ export const channels: Channel[] = [
     keyId: 'a2e6c6842391fd4d9dfe3c047e286eb4',
     key: '7d563478e5669d44cec9a6215052fec3',
     path: '/live/eds/Sony_Channel/sa_live_dash/Sony_Channel.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/SonyHD/SA_Live_dash_cenc/SonyHD.mpd', keyId: 'fd9619f9d7c2d5115a339941279e0b4b', key: 'bf55635e6591f905659fa27ab3ca2812' },
   }),
   createChannel({
     id: 'universal',
@@ -498,6 +557,7 @@ export const channels: Channel[] = [
     keyId: '281ed03234dce7e50391f9c4c7c90b48',
     key: '148c12b5c4526f3f7ab70f385cb36fac',
     path: '/live/eds/Universal/sa_live_dash/Universal.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Universal_Channel_HD/SA_Live_dash_cenc/Universal_Channel_HD.mpd', keyId: '6cf9a13d6fd65a0f2e1cee3969aab9f5', key: 'ea61c3c1adee71b5c2e9744e41d4b75f' },
   }),
   createChannel({
     id: 'axn',
@@ -508,6 +568,7 @@ export const channels: Channel[] = [
     keyId: 'bac0cdbf2e5a82fb27818e30bc8b75e5',
     key: '478bda16b7bbb4d01928270159771bd9',
     path: '/live/eds/AXN/sa_live_dash/AXN.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/AXNHD/SA_Live_dash_cenc/AXNHD.mpd', keyId: '03e77b5bbf5135a85d587c5af2f2f730', key: '1dd1ab1938a791d03f09eb88478b4880' },
   }),
   createChannel({
     id: 'studio-universal',
@@ -518,6 +579,7 @@ export const channels: Channel[] = [
     keyId: '68987b791521decfbe5dd633a3c15dc5',
     key: 'cff99d15661b3e8393d9ac9dd9a89869',
     path: '/live/eds/Studio_Universal/sa_live_dash/Studio_Universal.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Studio_Universal/SA_Live_dash_cenc/Studio_Universal.mpd', keyId: 'd9b541e3cd064d569843da42788d4263', key: 'bba5d26ad5051fb3f2cf7e3dd8a4a7d8' },
   }),
   createChannel({
     id: 'ae',
@@ -528,6 +590,7 @@ export const channels: Channel[] = [
     keyId: '0e45fe47af35c23962a3cc0ada9119f0',
     key: '84f178941bbcedca8d43926b69cca9b1',
     path: '/live/eds/AyE/sa_live_dash/AyE.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/AEHD/SA_Live_dash_cenc/AEHD.mpd', keyId: 'db12035627a4b3d7198b761f36b4a290', key: '80ca761a875992ac0e50b0851d5563fe' },
   }),
   createChannel({
     id: 'usa-network',
@@ -538,6 +601,7 @@ export const channels: Channel[] = [
     keyId: '072f31c5b5238da0d3b54b2a79e7a7d9',
     key: '984532822dc6ff3be1ffc56b0686d290',
     path: '/live/eds/USA_Network/sa_live_dash/USA_Network.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/USA_Network/SA_Live_dash_cenc/USA_Network.mpd', keyId: 'c754b522b3b87dc2ba2da3e35154ec14', key: '141a51e9e83861ae99b4b217431710b3' },
   }),
   createChannel({
     id: 'amc',
@@ -548,6 +612,7 @@ export const channels: Channel[] = [
     keyId: 'd60a3128c3cbe6c2728ccca61f55a87f',
     key: '1cc37b6959b6f9e7f70532604d1e8ed1',
     path: '/live/eds/AMC/sa_live_dash/AMC.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/AMC/SA_Live_dash_cenc/AMC.mpd', keyId: '1fa6a86fd80b6d1425dde74482b5dc9c', key: '744c3636d57a651ab444cf9fe5f95b33' },
   }),
   createChannel({
     id: 'golden',
@@ -558,6 +623,7 @@ export const channels: Channel[] = [
     keyId: '384a49756e9d5247537404c487edf312',
     key: '72e31a1d402eb30584c541736267f478',
     path: '/live/eds/Golden/sa_live_dash/Golden.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Golden/SA_Live_dash_cenc/Golden.mpd', keyId: 'b7d085dbd4539afcc6a55445efb2b04e', key: '0a55fbe044fed379d1632b589265b571' },
   }),
   createChannel({
     id: 'sony-movies',
@@ -568,6 +634,7 @@ export const channels: Channel[] = [
     keyId: '4201cacd22f7a4f3bb6db354c9ac9d75',
     key: 'f43bbaf105697ac3f8ff4c69ee30967f',
     path: '/live/eds/Sony_Movies/sa_live_dash/Sony_Movies.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/Sony_Movies/SA_Live_dash_cenc/Sony_Movies.mpd', keyId: '88b9c41e72acd5b589bbfb4776969781', key: '43b9403f7a9e28fc2d7cbf10373b85aa' },
   }),
   createChannel({
     id: 'eurochannel',
@@ -578,6 +645,7 @@ export const channels: Channel[] = [
     keyId: 'ee22649f9cf24a09c8e2d7f527b61ab6',
     key: '5f4f4cf346468adb895a5b5d5edd9a72',
     path: '/live/eds/Eurochannel/sa_live_dash/Eurochannel.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Eurochannel/SA_Live_dash_cenc/Eurochannel.mpd', keyId: '6f0fc214d9844a7590f0884d55b44c42', key: 'b2fe1bb5f9c79035301c328c1e93b0ee' },
   }),
   createChannel({
     id: 'golden-plus',
@@ -598,6 +666,7 @@ export const channels: Channel[] = [
     keyId: '54c693fe580f7a376d3a4ffcbaff2377',
     key: '64f7f672af645bd14c26f598e65ca686',
     path: '/live/eds/Investigation_discovery/sa_live_dash/Investigation_discovery.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/ID/SA_Live_dash_cenc/ID.mpd', keyId: '0956caf2e2bd41f49fdcead7cc94fe24', key: '640c49578073a911938617eb4e652d6c' },
   }),
   createChannel({
     id: 'comedy-central',
@@ -608,6 +677,7 @@ export const channels: Channel[] = [
     keyId: 'e2ef982ad8e10b04abb16ecfe4deab17',
     key: 'c9ec0f4087a3cd993de0a0dcb0a8a86b',
     path: '/live/eds/Comedy_Central/sa_live_dash/Comedy_Central.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/ComedyCentral/SA_Live_dash_cenc/ComedyCentral.mpd', keyId: '4013f784c5ef4318ad47024e61eb094e', key: 'bad433a547f97c7f65cda5e83b8dd416' },
   }),
   createChannel({
     id: 'cine-familiar',
@@ -638,6 +708,7 @@ export const channels: Channel[] = [
     keyId: '214c0efa71c1ac68be8143b18e4a5a52',
     key: 'dbd58022cf2f0f6c69e979a54346cc8b',
     path: '/live/eds/Telenovelas/sa_live_dash/Telenovelas.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Telenovelas/SA_Live_dash_cenc/Telenovelas.mpd', keyId: '60cb38a05880cd0eb429f71398609540', key: 'c251aac7943c0d1324aa9a4129f3afd4' },
   }),
   createChannel({
     id: 'el-gourmet',
@@ -648,6 +719,7 @@ export const channels: Channel[] = [
     keyId: 'a9034121a55c5254270a7fc87e6b933c',
     key: '630f14e9ca88c92a25af19834bbf01d6',
     path: '/live/eds/El_Gourmet/sa_live_dash/El_Gourmet.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/Gourmet/SA_Live_dash_cenc/Gourmet.mpd', keyId: '93d853ac4c8e24cf0295f6f97ee53bd3', key: 'fa5817fab4fb054ccea1abb9f3d767ed' },
   }),
   createChannel({
     id: 'e-entertainment',
@@ -658,6 +730,7 @@ export const channels: Channel[] = [
     keyId: 'a67b85023aec0c096831b2b0373715fd',
     key: 'be97d3955e711dfa12237416a1b9ad52',
     path: '/live/eds/E_Entertainment/sa_live_dash/E_Entertainment.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/E_Entertainment_Television/SA_Live_dash_cenc/E_Entertainment_Television.mpd', keyId: '5883553207f13e3dc8cecd1113d5ba68', key: '45434d40636dfa0e5312b93218e02185' },
   }),
   createChannel({
     id: 'discovery-hyh',
@@ -668,6 +741,7 @@ export const channels: Channel[] = [
     keyId: '270233c3621c173ad74f16aa6ba367ac',
     key: 'b39c8748f7f7530b1591c3a2ee0a3703',
     path: '/live/eds/Discovery_HyH/sa_live_dash/Discovery_HyH.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/DiscoveryHomeHealthHD/SA_Live_dash_cenc/DiscoveryHomeHealthHD.mpd', keyId: '9b0a76dd7a0df1e1b4320aeb1254d1a9', key: 'd011267775c38d6d2ab09b428c03d63f' },
   }),
   createChannel({
     id: 'mas-chic',
@@ -688,6 +762,7 @@ export const channels: Channel[] = [
     keyId: '28f91c97b02842d14c2196467d9f22ec',
     key: '07167c215250ae056a8f5dfb9b80d3a4',
     path: '/live/eds/TLC/sa_live_dash/TLC.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/TLC/SA_Live_dash_cenc/TLC.mpd', keyId: '58761c7b2819491eb3a0d765842c341a', key: '9dabc48f88bd7f266734e57501bd6f47' },
   }),
   createChannel({
     id: 'love-nature',
@@ -718,6 +793,7 @@ export const channels: Channel[] = [
     keyId: '26c0b72d115923133a5a9e4d4011819f',
     key: 'cf04154c74f09b1fd98115a9e04fcec6',
     path: '/live/eds/Discovery_Science/sa_live_dash/Discovery_Science.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Discovery_Science/SA_Live_dash_cenc/Discovery_Science.mpd', keyId: '46ba409fb04e40fb86b466d97e3a9588', key: 'f129fb9b5d213e20e2abe529b8cf2597' },
   }),
   createChannel({
     id: 'nat-geo',
@@ -728,6 +804,7 @@ export const channels: Channel[] = [
     keyId: 'aa5e6dae90f144937f1cf638460efe13',
     key: '284534e78bb04505bae9b484b2dc1537',
     path: '/live/eds/Nat_Geo/sa_live_dash/Nat_Geo.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/NatGeoHD/SA_Live_dash_cenc/NatGeoHD.mpd', keyId: '4be0c61ceddc62294cc9e23b627af53d', key: '852c1935d11c3c53d0a1ceff3bb3bf16' },
   }),
   createChannel({
     id: 'discovery-channel',
@@ -738,6 +815,7 @@ export const channels: Channel[] = [
     keyId: '142c0c050c551486e07bc210a1357da6',
     key: '0dbbc07185e4650e1a05dbbcb888909f',
     path: '/live/eds/Discovery_Channel/sa_live_dash/Discovery_Channel.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c3eds/DiscoveryHD/SA_Live_dash_cenc/DiscoveryHD.mpd', keyId: 'c283c84a7af0d7c8b9b612a8fb22a001', key: 'f45510c721eebd6eaa86a2e16ccbd77d' },
   }),
   createChannel({
     id: 'animal-planet',
@@ -748,6 +826,7 @@ export const channels: Channel[] = [
     keyId: '5eded9e86a760b6e23d1ce1d80b85484',
     key: '74e74a9ea3933219454c81f28ade93a8',
     path: '/live/eds/Animal_Planet/sa_live_dash/Animal_Planet.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/AnimalPlanet/SA_Live_dash_cenc/AnimalPlanet.mpd', keyId: '4146a8ecbb0540dc807c6389ee87e0bc', key: '0c3cdc1b3e4617c57361265e9fa4c5bd' },
   }),
   createChannel({
     id: 'hgtv',
@@ -758,6 +837,7 @@ export const channels: Channel[] = [
     keyId: '75dab5c02f8c98acc2a461a99da99b7e',
     key: '01fbb96e5283f6706b102c8d8ad54c5c',
     path: '/live/eds/HGTV/sa_live_dash/HGTV.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/Home_and_Garden/SA_Live_dash_cenc/Home_and_Garden.mpd', keyId: '43bc6a87ee4f21aa320ba00b980a6fd8', key: 'bd55130539a30faa1d90b3142eebe0b2' },
   }),
   createChannel({
     id: 'history-channel',
@@ -768,6 +848,7 @@ export const channels: Channel[] = [
     keyId: '0c14f56c92a97db5abb4b83da823f81f',
     key: '143a64606506c57b452bd9c8327bd6ff',
     path: '/live/eds/History_Channel/sa_live_dash/History_Channel.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c7eds/HistoryHD/SA_Live_dash_cenc/HistoryHD.mpd', keyId: 'e82318e518ba70cea3d7b37bef99e692', key: 'a05fcb634c071a514e3039e1c274b4db' },
   }),
   createChannel({
     id: 'canal-a',
@@ -778,6 +859,7 @@ export const channels: Channel[] = [
     keyId: '097578fb861438a8deecc5643082997b',
     key: '3ac02ae9a503e76a58f1e94eebd5f43d',
     path: '/live/eds/CanalA/sa_live_dash/CanalA.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Canal_a/SA_Live_dash_cenc/Canal_a.mpd', keyId: '324ec73787744554ae1aef231a4f8f97', key: '677a040674d1d0eccef327269b222bae' },
   }),
   createChannel({
     id: 'film-and-arts',
@@ -788,6 +870,7 @@ export const channels: Channel[] = [
     keyId: '940d79fb1961288803c64e60da991c5a',
     key: 'f55e18690327be6db3a1cf24b5be438b',
     path: '/live/eds/Film_and_Arts/sa_live_dash/Film_and_Arts.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Film_Arts/SA_Live_dash_cenc/Film_Arts.mpd', keyId: '91c540d350f34f5386f3f1c77f74001f', key: '54ee72810551da0cba0c45a8df651962' },
   }),
   createChannel({
     id: 'discovery-world',
@@ -798,6 +881,7 @@ export const channels: Channel[] = [
     keyId: 'cea94fefef1ff96d4ab0e27fb846b0c3',
     key: '634b2496b64bffc426bd4093c5945ec3',
     path: '/live/eds/Discovery_World/sa_live_dash/Discovery_World.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Discovery_World_HD/SA_Live_dash_cenc/Discovery_World_HD.mpd', keyId: '34ee94c2263345f7a3a590661264e490', key: '56757d656a697ab7a2e5e083b5d21bb5' },
   }),
   createChannel({
     id: 'rai',
@@ -808,6 +892,7 @@ export const channels: Channel[] = [
     keyId: 'a2e6c6842391fd4d9dfe3c047e286eb4',
     key: '7d563478e5669d44cec9a6215052fec3',
     path: '/live/eds/RAI/sa_live_dash/RAI.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/RAI/SA_Live_dash_cenc/RAI.mpd', keyId: 'd214547d7d9a4011a39a899ce6e70071', key: '16c2ed0617cf1e123f3af6ea8875a82d' },
   }),
   createChannel({
     id: 'tve',
@@ -838,6 +923,7 @@ export const channels: Channel[] = [
     keyId: '92a2837411c8be67f7ec1f79a7996750',
     key: '1ec313bd01d3f6d306fff11e4b032a1b',
     path: '/live/eds/MTV/sa_live_dash/MTV.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/MTV_HD/SA_Live_dash_cenc/MTV_HD.mpd', keyId: '0c9eb3ead38a122ac460ad96a8ebfd2e', key: '66bfbfa4449eb8bc1bcf7577d5bffaad' },
   }),
   createChannel({
     id: 'cm',
@@ -848,6 +934,7 @@ export const channels: Channel[] = [
     keyId: '1713f5c8e140bc32fab3893341bd6bf6',
     key: '85dbe90fab4bca195924b7cb17bfc211',
     path: '/live/eds/CM/sa_live_dash/CM.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/CM/SA_Live_dash_cenc/CM.mpd', keyId: '682f36b5736f4560951ca14b80d29524', key: '3accb729067a39b3b8143f1b447b9d25' },
   }),
   createChannel({
     id: 'quiero-musica',
@@ -858,6 +945,7 @@ export const channels: Channel[] = [
     keyId: '8be45f648b2f5a27f6c16a8dce2c92e1',
     key: 'defd91f23137624fec9fe157d6adc1dd',
     path: '/live/eds/Quiero_Musica/sa_live_dash/Quiero_Musica.mpd',
+    fallback: { url: 'https://cdn.cvattv.com.ar/live/c6eds/Quiero_HD/SA_Live_dash_cenc/Quiero_HD.mpd', keyId: 'a354b0c82a3a720c4a6f52ed5a1190f4', key: '45a76dcc84f058cfabc8b958d7303b28' },
   }),
   createChannel({
     id: 'telehit-musica',
@@ -879,4 +967,101 @@ export const channels: Channel[] = [
     key: '089ae50f8036135e7e458292e44676b5',
     path: '/live/eds/Telehit_Plus/sa_live_dash/Telehit_Plus.mpd',
   }),
+
+  // --- New channels from cvattv (cvattv-only source) ---
+
+  // SPORTS
+  createCvattvChannel({ id: 'nba-tv', name: 'NBA TV', shortName: 'NBA', color: '#1d4ed8', number: 65, url: 'https://cdn.cvattv.com.ar/live/c6eds/NBA_TV/SA_Live_dash_cenc/NBA_TV.mpd', keyId: 'd0c38de3c9844e4e9f975dffb3eff8ad', key: '141ca0fdf6ebadfa7107576b8e09e117' }),
+  createCvattvChannel({ id: 'golf-channel', name: 'Golf Channel', shortName: 'Golf', color: '#16a34a', number: 66, url: 'https://cdn.cvattv.com.ar/live/c6eds/Golf_Channel/SA_Live_dash_cenc/Golf_Channel.mpd', keyId: '38d6226b7cd2cfa86b4b9cdaa455e7d7', key: '24f0ef2bf787647cc02df870417eed2b' }),
+  createCvattvChannel({ id: 'tyc-internacional', name: 'TyC Internacional', shortName: 'TyC Intl', color: '#7c3aed', number: 67, url: 'https://cdn.cvattv.com.ar/live/c3eds/TyC_Internacional/SA_Live_dash_cenc/TyC_Internacional.mpd', keyId: '58e1ebe75d944f6a98ea67b1c7c0a572', key: '1c311b069dbce31ce8e62a6e7e2433eb' }),
+  createCvattvChannel({ id: 'america-sports', name: 'America Sports', shortName: 'Am Sports', color: '#4f86f7', number: 68, url: 'https://cdn.cvattv.com.ar/live/c6eds/America_Sports/SA_Live_dash_cenc/America_Sports.mpd', keyId: 'a0aa01337a2148bda1e21862295ae037', key: 'fee0f87a0527497351fc54ce36ad1de2' }),
+  createCvattvChannel({ id: 'fox-sports-premium', name: 'Fox Sports Premium', shortName: 'Fox+', color: '#15803d', number: 70, url: 'https://cdn.cvattv.com.ar/live/c7eds/Fox_Sports_Premiun_HD/SA_Live_dash_cenc/Fox_Sports_Premiun_HD.mpd', keyId: '4c230dbc7f6a4bfa6ad0aa73ff792374', key: '4186a7c2a15f590a9399886feaec4257' }),
+
+  // KIDS
+  createCvattvChannel({ id: 'cartoon-network', name: 'Cartoon Network', shortName: 'Cartoon', color: '#f59e0b', number: 301, url: 'https://cdn.cvattv.com.ar/live/c3eds/CartoonNetwork/SA_Live_dash_cenc/CartoonNetwork.mpd', keyId: 'd7df56efaa36a71141d238854cc46d1d', key: '8abb2ee9150d8b2af8ebec0de0f833c8' }),
+  createCvattvChannel({ id: 'dreamworks', name: 'Dreamworks', shortName: 'DW Kids', color: '#0ea5e9', number: 302, url: 'https://cdn.cvattv.com.ar/live/c7eds/Dreamworks/SA_Live_dash_cenc/Dreamworks.mpd', keyId: '7f30c43e47544412221fd64201d92f4b', key: 'f83d09d75a0946b1d71aa48c201b4d8b' }),
+  createCvattvChannel({ id: 'boomerang', name: 'Boomerang', shortName: 'Boomerang', color: '#f97316', number: 303, url: 'https://cdn.cvattv.com.ar/live/c7eds/Boomerang/SA_Live_dash_cenc/Boomerang.mpd', keyId: '5792e613fceb699c79cbc0e75fe4cd37', key: 'a672793730476ed23e5c1bce2ff570c6' }),
+  createCvattvChannel({ id: 'baby-tv', name: 'Baby TV', shortName: 'Baby TV', color: '#ec4899', number: 304, url: 'https://cdn.cvattv.com.ar/live/c7eds/BabyTV/SA_Live_dash_cenc/BabyTV.mpd', keyId: '9e09f0a3ecb932582e0f3bc6a6194c8d', key: '6d2363b7ba7680ea3bf6dcbad1efa5bf' }),
+  createCvattvChannel({ id: 'tooncast', name: 'Tooncast', shortName: 'Tooncast', color: '#8b5cf6', number: 305, url: 'https://cdn.cvattv.com.ar/live/c6eds/Tooncast/SA_Live_dash_cenc/Tooncast.mpd', keyId: '10638a722eb54c64bfb0e7a77483686a', key: '41a7d3d522e19215b7e8f611b6902d61' }),
+  createCvattvChannel({ id: 'nick-jr', name: 'Nick Jr', shortName: 'Nick Jr', color: '#facc15', number: 306, url: 'https://cdn.cvattv.com.ar/live/c6eds/Nick_Jr/SA_Live_dash_cenc/Nick_Jr.mpd', keyId: 'e824b2277a86fd6adfc40aa948e5064a', key: '28da2dbbe8e1a1463bbb23895b922083' }),
+  createCvattvChannel({ id: 'kidoo', name: 'Kidoo', shortName: 'Kidoo', color: '#a855f7', number: 307, url: 'https://cdn.cvattv.com.ar/live/c6eds/Kidoo/SA_Live_dash_cenc/Kidoo.mpd', keyId: 'dcd89337a501ab929c01a039774089dc', key: 'e96cc7be9139a8d581b3f5eebebfc10d' }),
+
+  // MOVIES & SERIES
+  createCvattvChannel({ id: 'incaa-tv', name: 'INCAA TV', shortName: 'INCAA', color: '#64748b', number: 223, url: 'https://cdn.cvattv.com.ar/live/c6eds/INCAA_Tv/SA_Live_dash_cenc/INCAA_Tv.mpd', keyId: 'd44f40e49d2945c1a3701c0885ff0b00', key: '6382b6279087402714b6824688c456df' }),
+  createCvattvChannel({ id: 'cinemax', name: 'Cinemax', shortName: 'Cinemax', color: '#0f172a', number: 224, url: 'https://cdn.cvattv.com.ar/live/c6eds/Cinemax/SA_Live_dash_cenc/Cinemax.mpd', keyId: '977928a92b82ba3781741a6470f8f45b', key: '51f4e62827c128f7210b79a11587661a' }),
+  createCvattvChannel({ id: 'volver', name: 'Volver', shortName: 'Volver', color: '#7c3aed', number: 225, url: 'https://cdn.cvattv.com.ar/live/c6eds/Volver/SA_Live_dash_cenc/Volver.mpd', keyId: '194e53184a424ce6989ad82c5f28fbc5', key: '65d60c5cc4de031172be0a6a51edbdfe' }),
+  createCvattvChannel({ id: 'space', name: 'Space', shortName: 'Space', color: '#1e293b', number: 226, url: 'https://cdn.cvattv.com.ar/live/c3eds/Space/SA_Live_dash_cenc/Space.mpd', keyId: '0942e4ecd1bd3567e8f9447f45c20a12', key: 'efca6264f04cf7373de0c30ec79fe909' }),
+  createCvattvChannel({ id: 'tnt-series', name: 'TNT Series', shortName: 'TNT Ser', color: '#2563eb', number: 227, url: 'https://cdn.cvattv.com.ar/live/c3eds/TNTSeries/SA_Live_dash_cenc/TNTSeries.mpd', keyId: '5c14d6aeb19bf113edf91a7b544253cb', key: '8d776d6f9c5c840ebe88d767dd731692' }),
+  createCvattvChannel({ id: 'warner-hd', name: 'Warner HD', shortName: 'Warner', color: '#1d4ed8', number: 228, url: 'https://cdn.cvattv.com.ar/live/c7eds/WarnerHD/SA_Live_dash_cenc/WarnerHD.mpd', keyId: '069bd3f0b6c279467e08549f17bf5bd0', key: '5afa7e369a6de1093818a85af912a775' }),
+  createCvattvChannel({ id: 'amc-series', name: 'AMC Series', shortName: 'AMC Ser', color: '#7c2d12', number: 229, url: 'https://cdn.cvattv.com.ar/live/c6eds/AMC_Series/SA_Live_dash_cenc/AMC_Series.mpd', keyId: '10d3d4f33a6bad277accc2688c46b406', key: '588fd56bcab1fcdb4f33b5c2f7018d29' }),
+  createCvattvChannel({ id: 'a3-series', name: 'A3 Series', shortName: 'A3 Ser', color: '#dc2626', number: 230, url: 'https://cdn.cvattv.com.ar/live/c7eds/A3_Series/SA_Live_dash_cenc/A3_Series.mpd', keyId: '5e34e08ae5ae440f01a03e505dd24a57', key: 'ed30cc7f5040a75d73f619320249272b' }),
+  createCvattvChannel({ id: 'a3-cine', name: 'A3 Cine', shortName: 'A3 Cine', color: '#be123c', number: 231, url: 'https://cdn.cvattv.com.ar/live/c7eds/A3_Cine/SA_Live_dash_cenc/A3_Cine.mpd', keyId: 'd6ff881a6f07986a80d6ad6f041b57d4', key: 'b401c87c2ab11a1a488ee1c474b109ae' }),
+  createCvattvChannel({ id: 'dhe', name: 'DHE', shortName: 'DHE', color: '#475569', number: 232, url: 'https://cdn.cvattv.com.ar/live/c7eds/DHE/SA_Live_dash_cenc/DHE.mpd', keyId: 'ff800156f81f70c687eccaadedc2ca15', key: '937ba1301e27008b34d02b9d8a31a0db' }),
+  createCvattvChannel({ id: 'pasiones', name: 'Pasiones', shortName: 'Pasiones', color: '#f43f5e', number: 233, url: 'https://cdn.cvattv.com.ar/live/c7eds/Pasiones/SA_Live_dash_cenc/Pasiones.mpd', keyId: 'd41cf825e878f0d8e276218af7f5b7e1', key: '13d1b73ab578ab8623be9347bcf8972a' }),
+  createCvattvChannel({ id: 'telemundo-hd', name: 'Telemundo HD', shortName: 'Telemundo', color: '#c026d3', number: 234, url: 'https://cdn.cvattv.com.ar/live/c7eds/Telemundo_HD/SA_Live_dash_cenc/Telemundo_HD.mpd', keyId: '53d752e4649dadd808d913985f86ee77', key: 'd1fd24db1b61d634cabfc44538ce9b0e' }),
+  createCvattvChannel({ id: 'tbs', name: 'TBS', shortName: 'TBS', color: '#0ea5e9', number: 235, url: 'https://cdn.cvattv.com.ar/live/c6eds/TBS/SA_Live_dash_cenc/TBS.mpd', keyId: '49a0179b034ae899cb67d8a5834181aa', key: '486e2c6d69adea7e17f2960e8e366612' }),
+  createCvattvChannel({ id: 'adult-swim', name: 'Adult Swim', shortName: 'Adult Swim', color: '#0f172a', number: 236, url: 'https://cdn.cvattv.com.ar/live/c3eds/Adult_Swim/SA_Live_dash_cenc/Adult_Swim.mpd', keyId: '9be1432e1e594c8d0648a44d3d9f0c46', key: '8e6c785b14d973c504074b1920f11b15' }),
+  createCvattvChannel({ id: 'europa-europa', name: 'Europa Europa', shortName: 'Europa', color: '#2563eb', number: 237, url: 'https://cdn.cvattv.com.ar/live/c6eds/Europa_Europa/SA_Live_dash_cenc/Europa_Europa.mpd', keyId: 'b47f257df0314d09a7f8355c3abe1dc6', key: 'bdc9f1696a82ee7398dd3a7fa82300e2' }),
+  createCvattvChannel({ id: 'tcm', name: 'TCM', shortName: 'TCM', color: '#92400e', number: 238, url: 'https://cdn.cvattv.com.ar/live/c6eds/TCM/SA_Live_dash_cenc/TCM.mpd', keyId: 'a5f44a5e30714cf3bcee7c7f15a08b4e', key: 'c3c141ae941ab9750339c3af45a65ce2' }),
+  createCvattvChannel({ id: 'paramount', name: 'Paramount', shortName: 'Paramount', color: '#1e3a8a', number: 239, url: 'https://cdn.cvattv.com.ar/live/c7eds/Paramount/SA_Live_dash_cenc/Paramount.mpd', keyId: 'b85b710ecff3e38f31fc8e249b1c1cef', key: 'a1544c193dde6f8858c9358ee69a60a7' }),
+
+  // HBO
+  createCvattvChannel({ id: 'hbo-hd', name: 'HBO HD', shortName: 'HBO', color: '#1d4ed8', number: 350, url: 'https://cdn.cvattv.com.ar/live/c3eds/HBOHD/SA_Live_dash_cenc/HBOHD.mpd', keyId: '5317283f4110fac3fb3a0becd9f648bc', key: '0754a03c926b1247216e01d9dbcfac28' }),
+  createCvattvChannel({ id: 'hbo-2', name: 'HBO 2', shortName: 'HBO 2', color: '#2563eb', number: 351, url: 'https://cdn.cvattv.com.ar/live/c6eds/HBO_2/SA_Live_dash_cenc/HBO_2.mpd', keyId: 'c90cc57ad2c436e5a77db2f8d9db2d85', key: '04f6c73984bdcffd013050608497935d' }),
+  createCvattvChannel({ id: 'hbo-plus', name: 'HBO Plus', shortName: 'HBO+', color: '#3b82f6', number: 352, url: 'https://cdn.cvattv.com.ar/live/c6eds/HBO_Plus/SA_Live_dash_cenc/HBO_Plus.mpd', keyId: 'f0e7f7d458990edfab7b98b412564615', key: '79205754b7f84a62661c2dbe9de5dd5d' }),
+  createCvattvChannel({ id: 'hbo-mundi', name: 'HBO Mundi', shortName: 'HBO Mundi', color: '#60a5fa', number: 353, url: 'https://cdn.cvattv.com.ar/live/c6eds/HBO_Mundi/SA_Live_dash_cenc/HBO_Mundi.mpd', keyId: '7821b2662148fe333d5191acbb8a5c1f', key: 'ae43f3e2545237ebda58b13813b5d328' }),
+  createCvattvChannel({ id: 'hbo-pop', name: 'HBO Pop', shortName: 'HBO Pop', color: '#93c5fd', number: 354, url: 'https://cdn.cvattv.com.ar/live/c7eds/HBO_POP/SA_Live_dash_cenc/HBO_POP.mpd', keyId: 'f4e1ce5cef7e9a110fe968f8881b21fa', key: '6bbe2062b150b11496cdd5fbdd9c89d6' }),
+  createCvattvChannel({ id: 'hbo-extreme', name: 'HBO Extreme', shortName: 'HBO Xtreme', color: '#1e40af', number: 355, url: 'https://cdn.cvattv.com.ar/live/c6eds/HBO_Extreme/SA_Live_dash_cenc/HBO_Extreme.mpd', keyId: 'd504011bbef467c0de3a7534e302a6d4', key: '334103e2abe16faa7f9ab2e3097c5a58' }),
+  createCvattvChannel({ id: 'hbo-family', name: 'HBO Family', shortName: 'HBO Fam', color: '#6d28d9', number: 356, url: 'https://cdn.cvattv.com.ar/live/c6eds/HBO_Family/SA_Live_dash_cenc/HBO_Family.mpd', keyId: '535473132f68082160b489482ca35f8e', key: 'e90fd91fcd3fc809bed2b1c0d37f7297' }),
+  createCvattvChannel({ id: 'hbo-signature', name: 'HBO Signature', shortName: 'HBO Sig', color: '#4c1d95', number: 357, url: 'https://cdn.cvattv.com.ar/live/c6eds/HBO_Signature/SA_Live_dash_cenc/HBO_Signature.mpd', keyId: 'e866499fbc1149f49989672075aa3a68', key: 'd2dd5c95623c6343240981c2202fc311' }),
+
+  // UNIVERSAL PACK
+  createCvattvChannel({ id: 'universal-premiere', name: 'Universal Premiere', shortName: 'U Premiere', color: '#0f172a', number: 380, url: 'https://cdn.cvattv.com.ar/live/c6eds/Universal_Premiere/SA_Live_dash_cenc/Universal_Premiere.mpd', keyId: '0eb20b51ad13b58ad417f11318e588b3', key: 'ad5d29a33d73d21187157802de8e6097' }),
+  createCvattvChannel({ id: 'universal-cinema', name: 'Universal Cinema', shortName: 'U Cinema', color: '#1e293b', number: 381, url: 'https://cdn.cvattv.com.ar/live/c6eds/Universal_Cinema/SA_Live_dash_cenc/Universal_Cinema.mpd', keyId: 'f6ae2e17173055e4ca69dc18963406ae', key: '5a955c29eb88a0b4c9a2538cc4b3aea2' }),
+  createCvattvChannel({ id: 'universal-comedy', name: 'Universal Comedy', shortName: 'U Comedy', color: '#334155', number: 382, url: 'https://cdn.cvattv.com.ar/live/c6eds/Universal_Comedy/SA_Live_dash_cenc/Universal_Comedy.mpd', keyId: '062c5d25105a3a935b67e36923c73f28', key: '88c2d4cec420f18d2477152c66c7870d' }),
+  createCvattvChannel({ id: 'universal-crime', name: 'Universal Crime', shortName: 'U Crime', color: '#475569', number: 383, url: 'https://cdn.cvattv.com.ar/live/c6eds/universal_Crime/SA_Live_dash_cenc/universal_Crime.mpd', keyId: '1efd7edf60e1514f775dd13d046ae708', key: 'c2ef1abbd945c62c11b1375eaaa50f0d' }),
+  createCvattvChannel({ id: 'universal-reality', name: 'Universal Reality', shortName: 'U Reality', color: '#64748b', number: 384, url: 'https://cdn.cvattv.com.ar/live/c6eds/Universal_Reality/SA_Live_dash_cenc/Universal_Reality.mpd', keyId: 'cedd9c1a5c2ae43f80ee3197212016d6', key: 'bf47a3c39e164a97ea6adc4c8dd57435' }),
+
+  // VARIETY
+  createCvattvChannel({ id: 'lifetime', name: 'Lifetime', shortName: 'Lifetime', color: '#c026d3', number: 410, url: 'https://cdn.cvattv.com.ar/live/c6eds/Lifetime/SA_Live_dash_cenc/Lifetime.mpd', keyId: 'eae51b1d67ff47adac7b6bd3a4b1120a', key: 'b4d6bb47193f33ffc12379cdc447455d' }),
+  createCvattvChannel({ id: 'food-network', name: 'Food Network', shortName: 'Food', color: '#ea580c', number: 411, url: 'https://cdn.cvattv.com.ar/live/c6eds/Food_Network/SA_Live_dash_cenc/Food_Network.mpd', keyId: '6ca0fbad21a0e908c0280dcc27e6ee0e', key: '62670eedbafdf9360b4ecaed738e26cd' }),
+  createCvattvChannel({ id: 'hola-tv', name: 'Hola TV', shortName: 'Hola TV', color: '#f43f5e', number: 413, url: 'https://cdn.cvattv.com.ar/live/c7eds/Hola_TV/SA_Live_dash_cenc/Hola_TV.mpd', keyId: '5d759477f0ad1bdef2c6de09e7c275fd', key: '82cc6eea185eecc934df95adfbbf9dbc' }),
+  createCvattvChannel({ id: 'canal-rural', name: 'Canal Rural', shortName: 'Rural', color: '#65a30d', number: 414, url: 'https://cdn.cvattv.com.ar/live/c6eds/Canal_Rural/SA_Live_dash_cenc/Canal_Rural.mpd', keyId: 'b02c568163c14cfda4ddb958a0aab742', key: 'ef64a70ac85a663a3308be6476610aad' }),
+  createCvattvChannel({ id: 'senal-maria', name: 'Señal Maria', shortName: 'S. Maria', color: '#2563eb', number: 417, url: 'https://cdn.cvattv.com.ar/live/c3eds/Senal_Maria/SA_Live_dash_cenc/Senal_Maria.mpd', keyId: 'd456fba3fccb4c06a0f4776fe412400b', key: 'ca5530ffe42a38759d3887c82d6a909a' }),
+  createCvattvChannel({ id: 'ewtn', name: 'EWTN', shortName: 'EWTN', color: '#1d4ed8', number: 418, url: 'https://cdn.cvattv.com.ar/live/c6eds/EWTN/SA_Live_dash_cenc/EWTN.mpd', keyId: '07df3c48652a431ab779d133f085b799', key: 'ee2fbeec1ecdffa5617383f684dfda0e' }),
+  createCvattvChannel({ id: 'canal-luz', name: 'Canal Luz', shortName: 'Canal Luz', color: '#eab308', number: 419, url: 'https://cdn.cvattv.com.ar/live/c7eds/CANAL_LUZ/SA_Live_dash_cenc/CANAL_LUZ.mpd', keyId: 'f7523ea5a2da78c465d928be1d81e2a5', key: '870ad69e98abd52b443bd8f0204b3bc4' }),
+
+  // DOCUMENTARY
+  createCvattvChannel({ id: 'theater-hd', name: 'Theater HD', shortName: 'Theater', color: '#7c3aed', number: 460, url: 'https://cdn.cvattv.com.ar/live/c6eds/Theater_HD/SA_Live_dash_cenc/Theater_HD.mpd', keyId: '5279c05ea51c4dae8e7fa6be88448089', key: 'b28dfafba4b848dfd5d7c177ebf19108' }),
+  createCvattvChannel({ id: 'history-2', name: 'History 2', shortName: 'History 2', color: '#a16207', number: 461, url: 'https://cdn.cvattv.com.ar/live/c6eds/History_2/SA_Live_dash_cenc/History_2.mpd', keyId: 'ecbe97ec34784304b390a12ba3854ccf', key: '5a0ee36ed9b8920cb19546fd92f2d415' }),
+
+  // MUSIC
+  createCvattvChannel({ id: 'vorterix', name: 'Vorterix', shortName: 'Vorterix', color: '#ef4444', number: 511, url: 'https://cdn.cvattv.com.ar/live/c6eds/Vorterix/SA_Live_dash_cenc/Vorterix.mpd', keyId: 'eabe2c22350c26c7f0ad84b34932f08d', key: '39fa06836ec0f81d8dd9b6e01a3070e3' }),
+  createCvattvChannel({ id: 'allegro-hd', name: 'Allegro HD', shortName: 'Allegro', color: '#f59e0b', number: 512, url: 'https://cdn.cvattv.com.ar/live/c7eds/AllegroHD/SA_Live_dash_cenc/AllegroHD.mpd', keyId: 'e55e61b81b992d6c21466891d72157e9', key: '566d341bf7209a88976e75c20ad7aca2' }),
+  createCvattvChannel({ id: 'mtv-00', name: 'MTV 00', shortName: 'MTV 00', color: '#d946ef', number: 513, url: 'https://cdn.cvattv.com.ar/live/c7eds/MTV00/SA_Live_dash_cenc/MTV00.mpd', keyId: '1f0c09ed9e5841cf867ba6eb3cdfd61d', key: '802c89c6bae6a245aaafcf40c1986fc1' }),
+  createCvattvChannel({ id: 'htv', name: 'HTV', shortName: 'HTV', color: '#a855f7', number: 514, url: 'https://cdn.cvattv.com.ar/live/c6eds/HTV/SA_Live_dash_cenc/HTV.mpd', keyId: 'daecef5fe32f4ce083c6a0c692755d6a', key: 'd4227f24389a9ba77293214b93eb0d7d' }),
+  createCvattvChannel({ id: 'mtv-hits', name: 'MTV Hits', shortName: 'MTV Hits', color: '#c026d3', number: 515, url: 'https://cdn.cvattv.com.ar/live/c6eds/MTV_Hits/SA_Live_dash_cenc/MTV_Hits.mpd', keyId: '61008dfc867544cd872de99b1f2b82cf', key: '716449756316b91c54803aaa22a2fbf0' }),
+  createCvattvChannel({ id: 'nickmusic', name: 'Nickmusic', shortName: 'Nickmusic', color: '#facc15', number: 516, url: 'https://cdn.cvattv.com.ar/live/c6eds/Nickmusic/SA_Live_dash_cenc/Nickmusic.mpd', keyId: 'eae6c12ccab349e6ae675ab6ed8a476c', key: '4a4fd86ea9db4417ec86c237d3111b18' }),
+  createCvattvChannel({ id: 'flow-music-xp', name: 'Flow Music XP', shortName: 'Flow XP', color: '#0ea5e9', number: 517, url: 'https://cdn.cvattv.com.ar/live/c7eds/Flow_Music_XP/SA_Live_dash_cenc/Flow_Music_XP.mpd', keyId: 'b2aae44a74144be8b2118e20d1412bab', key: '8a7ae996d12d8d5d5637d1044f8e08b7' }),
+  createCvattvChannel({ id: 'flow-music-1', name: 'Flow Music 1', shortName: 'Flow 1', color: '#38bdf8', number: 518, url: 'https://cdn.cvattv.com.ar/live/c7eds/Flow_Music_1/SA_Live_dash_cenc/Flow_Music_1.mpd', keyId: 'f34cd7709f093d23d4db009107d96862', key: 'd8a829138d970b45e867c9733a31b2f0' }),
+  createCvattvChannel({ id: 'flow-music-2', name: 'Flow Music 2', shortName: 'Flow 2', color: '#7dd3fc', number: 519, url: 'https://cdn.cvattv.com.ar/live/c7eds/Flow_Music_2/SA_Live_dash_cenc/Flow_Music_2.mpd', keyId: '596b599580b39ae2f3c413f7eae36902', key: '2d7e3d5d31f68690fd877a111f84e8e3' }),
+  createCvattvChannel({ id: 'flow-music-3', name: 'Flow Music 3', shortName: 'Flow 3', color: '#bae6fd', number: 520, url: 'https://cdn.cvattv.com.ar/live/c7eds/Flow_Music_3/SA_Live_dash_cenc/Flow_Music_3.mpd', keyId: 'e078b15ed770ec71f803c0ecc43de033', key: '7010bccda544f74d1b425c4cebd082d4' }),
+
+  // INTERNATIONAL
+  createCvattvChannel({ id: 'bloomberg', name: 'Bloomberg', shortName: 'Bloomberg', color: '#0f172a', number: 605, url: 'https://cdn.cvattv.com.ar/live/c3eds/Bloomberg/SA_Live_dash_cenc/Bloomberg.mpd', keyId: '1e50891cdc64452aae20d049727f2f3f', key: '551871ba1dc6a95597ec0cb82eb3b2a4' }),
+  createCvattvChannel({ id: 'cnn-espanol', name: 'CNN en Español', shortName: 'CNN Esp', color: '#dc2626', number: 606, url: 'https://cdn.cvattv.com.ar/live/c6eds/CNN_en_Espanol/SA_Live_dash_cenc/CNN_en_Espanol.mpd', keyId: '0b20ed9da0e5457c9dfd3ae0b6092491', key: '98997a7020c18cb28174a2490147830a' }),
+  createCvattvChannel({ id: 'cnn-internacional', name: 'CNN Internacional', shortName: 'CNN Intl', color: '#ef4444', number: 607, url: 'https://cdn.cvattv.com.ar/live/c6eds/CNN_Internacional/SA_Live_dash_cenc/CNN_Internacional.mpd', keyId: '9f24708ad1184ee3a04b650941f9894b', key: 'e5bc7c5ff392119423dbf1c023a7b21c' }),
+  createCvattvChannel({ id: 'bbc-world', name: 'BBC World News', shortName: 'BBC World', color: '#dc2626', number: 608, url: 'https://cdn.cvattv.com.ar/live/c6eds/BBC_World_News/SA_Live_dash_cenc/BBC_World_News.mpd', keyId: '019f72f2091d4cbea59ff8c85b117f86', key: 'a4eac51195506752f9f63ad24def9c37' }),
+  createCvattvChannel({ id: 'fox-news', name: 'Fox News', shortName: 'Fox News', color: '#1d4ed8', number: 609, url: 'https://cdn.cvattv.com.ar/live/c6eds/Fox_News/SA_Live_dash_cenc/Fox_News.mpd', keyId: '3fe3f31a5e7b48a1b548e9364757ce66', key: '32993fc281207fe915f6f1e990957868' }),
+  createCvattvChannel({ id: 'al-jazeera', name: 'Al Jazeera', shortName: 'Al Jazeera', color: '#f59e0b', number: 610, url: 'https://cdn.cvattv.com.ar/live/c7eds/Alljazzera/SA_Live_dash_cenc/Alljazzera.mpd', keyId: '137a1a70fa118b695118a3aad9485b13', key: '7c35ca36d4452dfa03d88725a0d16105' }),
+  createCvattvChannel({ id: 'euronews', name: 'Euronews', shortName: 'Euronews', color: '#2563eb', number: 611, url: 'https://cdn.cvattv.com.ar/live/c6eds/Euronews/SA_Live_dash_cenc/Euronews.mpd', keyId: 'd86b0f56d32f45adb0a6b4e488c8f0c2', key: 'e4f180b0e61be3e80ab602df5e56ff3f' }),
+  createCvattvChannel({ id: 'dw', name: 'DW', shortName: 'DW', color: '#0f172a', number: 612, url: 'https://cdn.cvattv.com.ar/live/c6eds/DW/SA_Live_dash_cenc/DW.mpd', keyId: 'e21fc12c6ee185fbc90a052b05026be9', key: '0f96fd52903707aac0b42853a043ffd0' }),
+  createCvattvChannel({ id: 'france-24', name: 'France 24', shortName: 'France 24', color: '#dc2626', number: 613, url: 'https://cdn.cvattv.com.ar/live/c6eds/France_24/SA_Live_dash_cenc/France_24.mpd', keyId: '72187f2651724db18505cdcad435841d', key: '6f41e05476e34edf7bb9dc51f08f95df' }),
+  createCvattvChannel({ id: 'tv5-monde', name: 'TV5 Monde', shortName: 'TV5', color: '#7c3aed', number: 614, url: 'https://cdn.cvattv.com.ar/live/c6eds/TV5_Monde/SA_Live_dash_cenc/TV5_Monde.mpd', keyId: '62034ff5988b4787b17cdf6f751a3142', key: 'b3938f0af28b4c0c082b0d4210e389a0' }),
+  createCvattvChannel({ id: 'antena-3', name: 'Antena 3', shortName: 'Antena 3', color: '#ea580c', number: 615, url: 'https://cdn.cvattv.com.ar/live/c6eds/Antena_3/SA_Live_dash_cenc/Antena_3.mpd', keyId: '1e1ad422a6714482b66fa702c16e50c6', key: '4fdf28a0ab91356ca55a75f4e9bf8c92' }),
+  createCvattvChannel({ id: 'telesur', name: 'Telesur', shortName: 'Telesur', color: '#15803d', number: 616, url: 'https://cdn.cvattv.com.ar/live/c6eds/Telesur/SA_Live_dash_cenc/Telesur.mpd', keyId: '5235d8ee29f14ce6b26ea5d828aee77a', key: '6bf6bd339e3098babc2ab0b984cd2376' }),
+  createCvattvChannel({ id: 'bandeirantes', name: 'Bandeirantes', shortName: 'Band', color: '#1d4ed8', number: 617, url: 'https://cdn.cvattv.com.ar/live/c7eds/Bandeirantes/SA_Live_dash_cenc/Bandeirantes.mpd', keyId: '0b4f56d5c19b45fb3e75a73b6ec06e6c', key: 'c464e2b6ded2b52e1e7753b3a859abce' }),
+  createCvattvChannel({ id: 'rede-record', name: 'Rede Record', shortName: 'Record', color: '#be123c', number: 618, url: 'https://cdn.cvattv.com.ar/live/c3eds/Rede_Record/SA_Live_dash_cenc/Rede_Record.mpd', keyId: 'b0bd8ea11b3f4c219903085ef1d44b0d', key: '9a25709a72c2ca93cb738665736cfa5a' }),
+  createCvattvChannel({ id: 'argentinisima', name: 'Argentinísima', shortName: 'Argent.', color: '#64748b', number: 619, url: 'https://cdn.cvattv.com.ar/live/c6eds/Argentinisima/SA_Live_dash_cenc/Argentinisima.mpd', keyId: 'a6243f46366445ebbf3117ec27365481', key: '81667cdc3bcf19a6a66c0919fa00a20b' }),
+  createCvattvChannel({ id: 'arirang', name: 'Arirang', shortName: 'Arirang', color: '#0f766e', number: 620, url: 'https://cdn.cvattv.com.ar/live/c7eds/Arirang/SA_Live_dash_cenc/Arirang.mpd', keyId: '436d78a75fad9bdcc6d409640c116a62', key: 'c77471ac3b694513a9c5ff68b8d4fac5' }),
 ]

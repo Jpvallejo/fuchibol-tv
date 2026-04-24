@@ -41,9 +41,20 @@ export class ShakaPlayer {
     try {
       await player.load(channel.getManifestUrl())
       this.callbacks.onLoaded()
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      this.callbacks.onError(msg)
+    } catch {
+      if (channel.fallback) {
+        player.configure({ drm: { clearKeys: { [channel.fallback.keyId]: channel.fallback.key } } })
+        try {
+          await player.load(channel.fallback.url)
+          this.callbacks.onLoaded()
+          return
+        } catch (err2) {
+          const msg = err2 instanceof Error ? err2.message : String(err2)
+          this.callbacks.onError(msg)
+          return
+        }
+      }
+      this.callbacks.onError('Error al reproducir el canal')
     }
   }
 
