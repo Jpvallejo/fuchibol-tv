@@ -65,6 +65,7 @@ export class GridNavigation {
       if (i === this.focusIndex) {
         el.classList.add('focused')
         el.focus()
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
       } else {
         el.classList.remove('focused')
       }
