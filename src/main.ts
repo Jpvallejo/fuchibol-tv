@@ -1,4 +1,6 @@
-import { channels } from './channels'
+import { channels as rawChannels } from './channels'
+
+const channels = [...rawChannels].sort((a, b) => a.number - b.number)
 import { ShakaPlayer } from './player'
 import { GridNavigation, type NavigationCell } from './navigation'
 

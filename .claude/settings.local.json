@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -v \"//\")",
+      "Bash(node -e ' *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://www.telered.com.ar/img/logos_ch/logos-SANTAMARIA-2705.png\")",
+      "Bash(curl -v --tlsv1.2 \"https://www.telered.com.ar/img/logos_ch/logos-SANTAMARIA-2705.png\")"
+    ]
+  }
+}
