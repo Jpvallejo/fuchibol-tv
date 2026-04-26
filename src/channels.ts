@@ -21,6 +21,26 @@ function buildGigaredManifest(path: string): string {
   return `https://${getGigaredHost()}.gigared.com.ar${path}`
 }
 
+export const CHANNEL_ID_BY_NUMBER: Record<number, string> = {
+  2014: 'hbMAAzaqDDeSCIBhaCW_OQ',
+  2002: 'PDBE9vBHXQYBlgCLtcVpIw',
+  2003: 'ciwOM-VXylKqJzf9viWjeA',
+  2004: 'wbidhpzmabaDfMcZTc-Wgg',
+  2015: 'zqVvs3FsL8K_dCUnWqt7SA',
+  2000: 'tnqww25oGSPXrqamnOOqsw',
+  2025: 'PNtwH85WxWLCq9YQDAL3UQ',
+  2033: 'Udqzh8pyX4ZJUmmeNZ4voQ',
+  2034: 'YS6jffitXAkU47DggbrKHg',
+  2035: 'aW5SZQAtH50WVnv2bgYslQ',
+  2036: 'UXOPMKA8jylVCKBQUsufyw',
+  2037: 'TuOPfNE6Hir1JE4yflHx1A',
+  2062: 'skR_HWeVKregO8eFKeplew',
+  2065: 'Vqfw5SS8gWr332vJUn6aKQ',
+  2066: 'Mpn70pqyaDdZN60vclCdHw',
+  2058: 'BJtk3lOacTL4LgGEdKHqgg',
+
+};
+
 const CHANNEL_IMAGE_BY_NUMBER: Record<number, string> = {
   9: '/logo/9-logos-AMERICA-2705.png',
   10: '/logo/10-logos-TELEFE-2705.png',
@@ -159,6 +179,35 @@ const CHANNEL_IMAGE_BY_NUMBER: Record<number, string> = {
   2011: '/logo/2011.jpg',
   2012: '/logo/2012.png',
   2013: '/logo/2013.png',
+  2014: '/logo/2014.webp',
+  2015: '/logo/2015.webp',
+  2016: '/logo/2016.webp',
+  2017: '/logo/2017.webp',
+  2020: '/logo/2020.webp',
+  2025: '/logo/2025.png',
+  2033: '/logo/2033.webp',
+  2034: '/logo/2034.webp',
+  2035: '/logo/2035.webp',
+  2036: '/logo/2036.webp',
+  2037: '/logo/2037.webp',
+  2042: '/logo/2042.webp',
+  2051: '/logo/2051.webp',
+  2052: '/logo/2052.webp',
+  2053: '/logo/2053.webp',
+  2054: '/logo/2054.webp',
+  2055: '/logo/2055.webp',
+  2058: '/logo/2058.webp',
+  2062: '/logo/2062.png',
+  2065: '/logo/2065.webp',
+  2066: '/logo/2066.webp',
+  2067: '/logo/2067.webp',
+  2069: '/logo/2069.webp',
+  2070: '/logo/2070.webp',
+  2075: '/logo/2075.webp',
+  2078: '/logo/2078.webp',
+  2080: '/logo/2080.webp',
+  2085: '/logo/2085.webp',
+  2089: '/logo/2089.webp',
 }
 
 function createChannel(config: {
