@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Fuchibol TV</string>
-    <string name="title_activity_main">Fuchibol TV</string>
-    <string name="package_name">com.fuchibol.tv</string>
-    <string name="custom_url_scheme">com.fuchibol.tv</string>
+    <string name="app_name">argentina TV</string>
+    <string name="title_activity_main">argentina TV</string>
+    <string name="package_name">com.argentina.tv</string>
+    <string name="custom_url_scheme">com.argentina.tv</string>
 </resources>

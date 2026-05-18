@@ -18,7 +18,7 @@
   --accent: #7fd7ff;
   --accent-strong: #37c9ff;
   --danger: #ff6060;
-  --channel-column: 250px;
+  --channel-column: 160px;
 }
 
 html, body {
@@ -328,7 +328,7 @@ button {
 .channel-row {
   display: flex;
   align-items: stretch;
-  min-height: 104px;
+  min-height: 68px;
   position: relative;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -346,7 +346,7 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 18px;
+  padding: 10px 18px;
   border: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   border-left: 4px solid var(--accent-strong);
@@ -371,9 +371,9 @@ button {
 }
 
 .channel-sticky-logo {
-  width: 52px;
-  height: 52px;
-  flex: 0 0 52px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
   border-radius: 10px;
   background: #0e1220;
   background-size: contain;
@@ -382,11 +382,12 @@ button {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
-.channel-sticky-copy {
+.channel-sticky-logo-group {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   min-width: 0;
-  gap: 5px;
 }
 
 .channel-sticky-number {
@@ -405,41 +406,30 @@ button {
 }
 
 .channel-sticky-name {
-  font-size: 1.08rem;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.96);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.channel-sticky-live {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: rgba(132, 236, 255, 0.9);
-  line-height: 1.25;
-  white-space: normal;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  text-align: left;
+  max-width: 80px;
 }
 
 .channel-programs {
   position: relative;
   flex: 0 0 auto;
-  min-height: 104px;
+  min-height: 68px;
   min-width: max-content;
   background: rgba(255, 255, 255, 0.01);
 }
 
 .program-block {
   position: absolute;
-  top: 11px;
-  bottom: 11px;
+  top: 7px;
+  bottom: 7px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
+  /* border-radius: 18px; */
   padding: 14px 14px 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.06)),
@@ -540,28 +530,87 @@ button {
   display: block;
 }
 
-/* ===== Loading Spinner ===== */
-.loading-spinner {
+/* ===== Channel Loading Screen ===== */
+.channel-loading {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  gap: 22px;
+  background: linear-gradient(180deg, #06080f 0%, #0b0f1e 100%);
   z-index: 10;
 }
 
-.loading-spinner[hidden] {
+.channel-loading[hidden] {
   display: none;
 }
 
-.spinner {
-  width: 72px;
-  height: 72px;
-  border: 6px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #fff;
+.channel-loading-logo {
+  width: 110px;
+  height: 110px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.channel-loading-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.channel-loading-number {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.channel-loading-name {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: -0.02em;
+}
+
+.channel-loading-dots {
+  display: flex;
+  gap: 9px;
+}
+
+.channel-loading-dots span {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  animation: spin 0.9s linear infinite;
+  background: rgba(127, 215, 255, 0.7);
+  animation: loading-bounce 1.2s ease-in-out infinite;
+}
+
+.channel-loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.channel-loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes loading-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* ===== Error Overlay ===== */
@@ -810,7 +859,7 @@ button {
 
 @media (max-width: 1200px) {
   :root {
-    --channel-column: 280px;
+    --channel-column: 160px;
   }
 
   #screen-grid {
@@ -829,16 +878,16 @@ button {
 
 @media (max-width: 900px) {
   :root {
-    --channel-column: 240px;
+    --channel-column: 160px;
   }
 
   .channel-row {
-    min-height: 92px;
+    min-height: 60px;
   }
 
   .program-block {
-    top: 9px;
-    bottom: 9px;
+    top: 6px;
+    bottom: 6px;
     border-radius: 14px;
   }
 

@@ -22,8 +22,15 @@
   <div id="screen-player" class="screen">
     <video id="video" autoplay playsinline></video>
 
-    <div id="loading-spinner" class="loading-spinner" hidden>
-      <div class="spinner"></div>
+    <div id="loading-spinner" class="channel-loading" hidden>
+      <div class="channel-loading-logo" id="loading-logo"></div>
+      <div class="channel-loading-info">
+        <span class="channel-loading-number" id="loading-number"></span>
+        <span class="channel-loading-name" id="loading-name"></span>
+      </div>
+      <div class="channel-loading-dots">
+        <span></span><span></span><span></span>
+      </div>
     </div>
 
     <div id="error-overlay" class="error-overlay" hidden>

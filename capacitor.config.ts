@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.fuchibol.tv',
-  appName: 'Fuchibol TV',
+  appId: 'com.argentina.tv',
+  appName: 'argentina TV',
   webDir: 'dist'
 };
 

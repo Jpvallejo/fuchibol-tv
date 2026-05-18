@@ -1,6 +1,6 @@
 {
-  "name": "fuchibol-tv",
-  "version": "1.0.7",
+  "name": "argentina-tv",
+  "version": "1.0.3",
   "private": true,
   "scripts": {
     "dev": "vite",

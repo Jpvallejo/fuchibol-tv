@@ -1,4 +1,4 @@
-package com.fuchibol.tv;
+package com.argentina.tv;
 
 import android.view.KeyEvent;
 import com.getcapacitor.BridgeActivity;
