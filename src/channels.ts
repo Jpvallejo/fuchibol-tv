@@ -42,31 +42,31 @@ export const CHANNEL_ID_BY_NUMBER: Record<number, string> = {
 
 };
 
-const CHANNEL_IMAGE_BY_NUMBER: Record<number, string> = {
-  2: '/logo/9-logos-AMERICA-2705.png',
-  11: '/logo/10-logos-TELEFE-2705.png',
-  7: '/logo/11-logo-tvpublica-20210302.png',
-  9: '/logo/13-logos-CANAL9-2705.png',
-  100: '/logo/15-logos-TN-2705.png',
-  105: '/logo/16-logo-A24_80-20250210.png',
-  102: '/logo/17-logos-C5Nhd-270218.png',
-  104: '/logo/18-logos-CRONICA-2705.png',
-  103: '/logo/19-logos-CANAL26-2705.png',
-  101: '/logo/20-logo-lnmas-03082017.png',
-  207: '/logo/50-logos-TYCSPORTS-2705.png',
-  200: '/logo/51-ESPN_tv_rojo.png',
-  201: '/logo/52-ESPN2_rojo.png',
-  202: '/logo/53-logo-ESPN3-20210302.png',
-  204: '/logo/54-LOGO-foxsports-202302.png',
-  205: '/logo/55-LOGO-foxsports2-202302.png',
-  206: '/logo/56-LOGO-foxsports3-202302.png',
-  251: '/logo/58-ESPN_PREMIUM.png',
-  250: '/logo/59-logo-TNTSportsPremium20250123.png',
-  60: '/logo/60-logos-DXTV-2705.png',
-  210: '/logo/63-logos-TURBO-2705.png',
-  208: '/logo/64-logos-ELGARAGE-2705.png',
+const CHANNEL_IMAGE_BY_NUMBER: Record<number, string|null> = {
+  2: '/logo/9-logos-AMERICA-2705.png', // America TV
+  11: '/logo/10-logos-TELEFE-2705.png', // Telefe
+  7: '/logo/11-logo-tvpublica-20210302.png', // TV Publica
+  9: '/logo/13-logos-CANAL9-2705.png', // Canal 9
+  100: '/logo/15-logos-TN-2705.png', // TN
+  105: '/logo/16-logo-A24_80-20250210.png', // A24
+  102: '/logo/17-logos-C5Nhd-270218.png', // C5N
+  104: '/logo/18-logos-CRONICA-2705.png', // Cronica TV
+  103: '/logo/19-logos-CANAL26-2705.png', // Canal 26
+  101: '/logo/20-logo-lnmas-03082017.png', // LN+
+  207: '/logo/50-logos-TYCSPORTS-2705.png', // TyC Sports
+  200: '/logo/51-ESPN_tv_rojo.png', // ESPN
+  201: '/logo/52-ESPN2_rojo.png', // ESPN 2
+  202: '/logo/53-logo-ESPN3-20210302.png', // ESPN 3
+  204: '/logo/54-LOGO-foxsports-202302.png', // Fox Sports
+  205: '/logo/55-LOGO-foxsports2-202302.png', // Fox Sports 2
+  206: '/logo/56-LOGO-foxsports3-202302.png', // Fox Sports 3
+  251: '/logo/58-ESPN_PREMIUM.png', // ESPN Premium
+  250: '/logo/59-logo-TNTSportsPremium20250123.png', // TNT Sports
+  209: '/logo/60-logos-DXTV-2705.png', // DeporTV
+  210: '/logo/63-logos-TURBO-2705.png', // Discovery Turbo
+  208: '/logo/64-logos-ELGARAGE-2705.png', // El Garage
   107: '/logo/107-logos-CRONICA-2705.png',
-  108: '/logo/108-logo-nettv.png',
+  15: '/logo/108-logo-nettv.png',
   110: '/logo/110-logos-AMERICAHD-2705.png',
   111: '/logo/111-logo-tvpublica-20210302.png',
   112: '/logo/112-logos-CANAL9-2705.png',
@@ -81,35 +81,32 @@ const CHANNEL_IMAGE_BY_NUMBER: Record<number, string> = {
   121: '/logo/121-ESPN_tv_rojo.png',
   122: '/logo/122-logos-ESPN2-2705.png',
   123: '/logo/123-logo-ESPN3-20210302.png',
-  203: '/logo/124-espn4-20231602.png',
+  203: '/logo/124-espn4-20231602.png', // ESPN 4
   125: '/logo/125-LOGO-foxsports-202302.png',
   126: '/logo/126-LOGO-foxsports2-202302.png',
   127: '/logo/127-LOGO-foxsports3-202302.png',
   128: '/logo/128-logos-ESPNPREMIUM-270625.svg',
   129: '/logo/129-logos-TNTSportsPremium-270625.svg',
-  131: '/logo/131-logos-DXTV-2705.png',
   132: '/logo/132-logo-GOLF-20200616.png',
   133: '/logo/133-logos-TURBO-2705.png',
-  169: '/logo/169.png',
+  169: '/logo/169.png', // Golden
   184: '/logo/184.png',
-  301: '/logo/201-cinecanal.png',
-  500: '/logo/195-logos-DISNEYHD-2705.png',
-  503: '/logo/197-logo-DISCOVERYKIDSHD-03082017.png',
-  501: '/logo/198-disneyjr-web20240808.png',
-  357: '/logo/200-logos-AXN-2705.png',
+  301: '/logo/201-cinecanal.png', // Cinecanal
+  500: '/logo/195-logos-DISNEYHD-2705.png', // Disney Channel
+  503: '/logo/197-logo-DISCOVERYKIDSHD-03082017.png', // Discovery Kids
+  501: '/logo/198-disneyjr-web20240808.png', // Disney Junior
+  357: '/logo/200-logos-AXN-2705.png', // AXN
   211: '/logo/211-logos-TNT-2705.png',
   215: '/logo/215-logos-AMC-3006.png',
   217: '/logo/217-logos-FX-2705.png',
-  219: '/logo/219-logos-MUNDOFOX-2705.png',
+  306: '/logo/219-logos-MUNDOFOX-2705.png', // Cine.ar
   220: '/logo/220-logos-FILMANDARTS-2705.png',
   221: '/logo/221-logos-A&E-2705.png',
   222: '/logo/222.png',
-  510: '/logo/300-logos-PAKAPAKA-2705.png',
+  510: '/logo/300-logos-PAKAPAKA-2705.png', // PakaPaka
   404: '/logo/404-logos-GOURMET-2705.png',
   406: '/logo/406-logos-E-2705.png',
-  409: '/logo/409-logos-MASCHIC-2705.png',
-  412: '/logo/412-logos-A-CULTURA-2705.png',
-  416: '/logo/416-logos-UNIFE-20220308.png',
+  416: '/logo/416-logos-UNIFE-20220308.png', // Unife
   402: '/logo/402.png',
   451: '/logo/451-logo-ANIMALPLANET-08032019.png',
   452: '/logo/452-logo-DISCOVERY2019.png',
@@ -119,88 +116,135 @@ const CHANNEL_IMAGE_BY_NUMBER: Record<number, string> = {
   457: '/logo/457-logo_TCL_010722.png',
   458: '/logo/458-LOGO-hgtv.png',
   459: '/logo/459-logos-SCIENCE-2705.png',
-  750: '/logo/501-logos-MTV-2705.png',
-  509: '/logo/509-CM-20210128.png',
-  604: '/logo/604-logos-RAI-2705.png',
-  605: '/logo/605.png',
+  750: '/logo/501-logos-MTV-2705.png', // MTV
+  // 509: '/logo/509-CM-20210128.png',
+  604: '/logo/604-logos-RAI-2705.png', // Discovery World
+  605: '/logo/605.png', // Nat Geo
   2000: '/logo/2000.png',
-  2001: '/logo/2001.jpg',
-  310: '/logo/2002.png',
-  23: '/logo/23.png',
-  150: '/logo/150.svg',
-  151: '/logo/151.svg',
-  152: '/logo/152.svg',
-  153: '/logo/153.svg',
-  154: '/logo/154.svg',
-  155: '/logo/155.svg',
-  156: '/logo/156.svg',
-  157: '/logo/157.svg',
+  2001: '/logo/2001.jpg', // Zoo Moo
+  300: '/logo/204.png', // Cinemax
+  310: '/logo/2002.png', // USA Network
+  23: '/logo/23.png', // Señal Maria
+  408: '/logo/150.svg',
+  409: '/logo/153.svg',
+  410: '/logo/152.svg',
+  412: '/logo/154.svg',
+  413: '/logo/155.svg',
+  414: '/logo/156.svg',
+  411: '/logo/157.svg',
   177: '/logo/177.png',
-  183: '/logo/183.png',
-  209: '/logo/209.png',
+  183: '/logo/183.png', // Theater HD
+  308: '/logo/209.png', // Space
   212: '/logo/212.png',
   213: '/logo/213.png',
   214: '/logo/214.png',
-  216: '/logo/216.png',
+  309: '/logo/216.png',
   218: '/logo/218.png',
-  506: '/logo/301.png',
-  302: '/logo/302.png',
-  307: '/logo/307.png',
-  309: '/logo/309.png',
-  311: '/logo/311.jpg',
+  506: '/logo/301.png', // Cartoonito
+  302: 'logo/205-LOGO_STAR_CHANNEL.svg', // Star Channel
+  312: '/logo/203.png', // Eurochannel
+  507: '/logo/302.png', // Cartoon Network
+  505: '/logo/307.png', // Baby TV
+  511: '/logo/309.png', // Tooncast
+  509: '/logo/311.jpg', // Nick Jr
   401: '/logo/401.png',
   403: '/logo/403.png',
-  410: '/logo/410.png',
-  461: '/logo/461.png',
-  508: '/logo/508.png',
-  600: '/logo/600.png',
-  602: '/logo/602.png',
+  410: '/logo/410.png', // HBO Plus
+  461: '/logo/461.png', // History 2
+  508: '/logo/193-logo-NICKHD-11.png', // Nickelodeon
+  751: '/logo/508.png', // Nickelodeon
+  600: '/logo/600.png', // Discovery Channel
+  602: '/logo/602.png', // Discovery Science
   603: '/logo/603.png',
   608: '/logo/608.png',
-  609: '/logo/609.png',
-  610: '/logo/610.png',
-  611: '/logo/611.png',
-  612: '/logo/612.png',
-  2003: '/logo/2003.png',
-  2004: '/logo/2004.png',
+  609: '/logo/609.png', // History Channel
+  610: '/logo/610.png', // DW
+  611: '/logo/220-logos-FILMANDARTS-2705.png', // Film and Arts
+  6110: '/logo/611.png', // Arirang
+  612: '/logo/612.png', // Arirang
+  2003: '/logo/2003.png', // Universal
+  2004: '/logo/2004.png', // Studio Universal
   2005: '/logo/2005.png',
-  2006: '/logo/2006.png',
-  2007: '/logo/2007.png',
-  2008: '/logo/2008.png',
-  2009: '/logo/2009.png',
-  2010: '/logo/2010.png',
-  2011: '/logo/2011.jpg',
-  2012: '/logo/2012.png',
-  2013: '/logo/2013.png',
-  2014: '/logo/2014.webp',
-  2015: '/logo/2015.webp',
-  2016: '/logo/2016.webp',
-  2017: '/logo/2017.webp',
-  2020: '/logo/2020.webp',
-  2025: '/logo/2025.png',
-  2033: '/logo/2033.webp',
-  2034: '/logo/2034.webp',
+  2006: '/logo/2006.png', // Golden Plus
+  2007: '/logo/2007.png', // Cine Familiar
+  2008: '/logo/2008.png', // Cine Premium
+  2009: '/logo/2009.png', // Love Nature
+  2010: '/logo/2010.png', // Telenovelas
+  2011: '/logo/2011.jpg', // 24H
+  2012: '/logo/2012.png', // Telehit Musica
+  2013: '/logo/2013.png', // Telehit Plus
+  2014: '/logo/2014.webp', // NBA TV
+  2015: '/logo/2015.webp', // Golf Channel
+  2016: '/logo/2016.webp', // TyC Internacional
+  2017: '/logo/2017.webp', // America Sports
+  2020: '/logo/2020.webp', // Dreamworks
+  2025: '/logo/2025.png', // Kidoo
+  2033: '/logo/2033.webp', // A3 Series
+  2034: '/logo/2034.webp', // A3 Cine
   2035: '/logo/2035.webp',
   2036: '/logo/2036.webp',
   2037: '/logo/2037.webp',
-  2042: '/logo/2042.webp',
-  2051: '/logo/2051.webp',
-  2052: '/logo/2052.webp',
-  2053: '/logo/2053.webp',
-  2054: '/logo/2054.webp',
-  2055: '/logo/2055.webp',
+  2042: '/logo/2042.webp', // Paramount
+  2051: '/logo/2051.webp', // Universal Premiere
+  2052: '/logo/2052.webp', // Universal Cinema
+  2053: '/logo/2053.webp', // Universal Comedy
+  2054: '/logo/2054.webp', // Universal Crime
+  2055: '/logo/2055.webp', // Universal Reality
   2058: '/logo/2058.webp',
-  2062: '/logo/2062.png',
-  2065: '/logo/2065.webp',
-  2066: '/logo/2066.webp',
-  2067: '/logo/2067.webp',
-  2069: '/logo/2069.webp',
-  2070: '/logo/2070.webp',
-  2075: '/logo/2075.webp',
+  2062: '/logo/2062.png', // Canal Luz
+  2065: '/logo/2065.webp', // Vorterix
+  2066: '/logo/2066.webp', // Allegro HD
+  2067: '/logo/2067.webp', // MTV 00
+  2069: '/logo/2069.webp', // MTV Hits
+  2070: '/logo/2070.webp', // Nickmusic
+  2075: '/logo/2075.webp', // Bloomberg
   2078: '/logo/2078.webp',
-  2080: '/logo/2080.webp',
-  2085: '/logo/2085.webp',
-  2089: '/logo/2089.webp',
+  2080: '/logo/2080.webp', // Al Jazeera
+  2085: '/logo/2085.webp', // Antena 3
+  2089: '/logo/2089.webp', // Argentinísima
+  305: '/logo/211-logos-TNT-2705.png', // TNT
+  314: '/logo/2035.webp', // DHE
+  315: '/logo/213.png', // Volver
+  350: '/logo/214.png', // Warner HD
+  351: '/logo/177.png', // Adult Swim
+  352: '/logo/208-logos-SONY-08082019.png', // Sony Channel
+  354: '/logo/217-logos-FX-2705.png', // FX
+  355: '/logo/215.png', // AMC
+  356: '/logo/212.png', // TNT Series
+  360: '/logo/2036.webp', // Pasiones
+  361: '/logo/222.png', // Comedy Central
+  362: '/logo/402.png', // Investigation Discovery
+  363: '/logo/215-logos-AMC-3006.png', // AMC Series
+  365: '/logo/2037.webp', // Telemundo HD
+  366: '/logo/221-logos-A&E-2705.png', // A&E
+  407: '/logo/150.svg', // HBO HD
+  504: '/logo/2000.png', // Plim Plim
+  601: '/logo/453-homeAndHealth-202205.png', // Discovery H&H
+  607: '/logo/451-logo-ANIMALPLANET-08032019.png', // Animal Planet
+  651: '/logo/457-logo_TCL_010722.png', // TLC
+  653: '/logo/404-logos-GOURMET-2705.png', // El Gourmet
+  654: '/logo/218.png', // Lifetime
+  655: '/logo/403.png', // Food Network
+  658: '/logo/2058.webp', // Hola TV
+  700: '/logo/412-logos-A-CULTURA-2705.png', // Canal A
+  701: '/logo/406-logos-E-2705.png', // E! Entertainment
+  704: '/logo/401.png', // Canal Rural
+  752: '/logo/509-CM-20210128.png', // CM
+  753: '/logo/510-logos-QUIERO-2705.png', // Quiero Musica
+  800: '/logo/609.png', // CNN en Español
+  801: '/logo/608.png', // CNN Internacional
+  803: '/logo/2078.webp', // BBC World News
+  804: '/logo/605.png', // TVE
+  805: '/logo/604-logos-RAI-2705.png', // RAI
+  806: '/logo/603.png', // France 24
+  2038: null, // TBS
+  2071: '/logo/2016.webp', // Flow Music XP
+  2072: '/logo/2016.webp', // Flow Music 1
+  2073: '/logo/2016.webp', // Flow Music 2
+  2074: '/logo/2016.webp', // Flow Music 3
+  2081: null, // Euronews
+  2087: null, // Bandeirantes
+  2088: null, // Rede Record
 }
 
 // Images are resolved directly from CHANNEL_IMAGE_BY_NUMBER by channel `number`.
@@ -260,7 +304,7 @@ function createCvattvChannel(config: {
   }
 }
 
-export const channels: Channel[] = [
+const channelsRaw: Channel[] = [
   createChannel({
     id: 'america-tv',
     name: 'America TV',
@@ -386,7 +430,7 @@ export const channels: Channel[] = [
     name: 'DeporTV',
     shortName: 'DeporTV',
     color: '#16a34a',
-    number: 60,
+    number: 209,
     keyId: '5f8bcea8ec9fdd5e6927e46ce856824b',
     key: '3cf09d0c9ebeab2edfe600887e61b368',
     path: '/live/eds/DeporTV/sa_live_dash/DeporTV.mpd',
@@ -624,7 +668,7 @@ export const channels: Channel[] = [
     name: 'Cine.ar',
     shortName: 'Cine.ar',
     color: '#64748b',
-    number: 219,
+    number: 306,
     keyId: 'ff87d23b45efc58ff6a7ad0f5fdef566',
     key: '0e84fa871d67fede2c5385b54b60b5dc',
     category: 'MOVIES',
@@ -791,7 +835,7 @@ export const channels: Channel[] = [
     name: 'Eurochannel',
     shortName: 'Euro',
     color: '#8b5cf6',
-    number: 302,
+    number: 312,
     keyId: 'ee22649f9cf24a09c8e2d7f527b61ab6',
     key: '5f4f4cf346468adb895a5b5d5edd9a72',
     category: 'MOVIES',
@@ -1157,12 +1201,12 @@ export const channels: Channel[] = [
   createCvattvChannel({ id: 'tyc-internacional', name: 'TyC Internacional', shortName: 'TyC Intl', color: '#7c3aed', number: 2016, url: 'https://cdn.cvattv.com.ar/live/c3eds/TyC_Internacional/SA_Live_dash_cenc/TyC_Internacional.mpd', keyId: '58e1ebe75d944f6a98ea67b1c7c0a572', key: '1c311b069dbce31ce8e62a6e7e2433eb', category: 'SPORTS' }),
   createCvattvChannel({ id: 'america-sports', name: 'America Sports', shortName: 'Am Sports', color: '#4f86f7', number: 2017, url: 'https://cdn.cvattv.com.ar/live/c6eds/America_Sports/SA_Live_dash_cenc/America_Sports.mpd', keyId: 'a0aa01337a2148bda1e21862295ae037', key: 'fee0f87a0527497351fc54ce36ad1de2', category: 'SPORTS' }),
   // `KIDS`
-  createCvattvChannel({ id: 'cartoon-network', name: 'Cartoon Network', shortName: 'Cartoon', color: '#f59e0b', number: 302, url: 'https://cdn.cvattv.com.ar/live/c3eds/CartoonNetwork/SA_Live_dash_cenc/CartoonNetwork.mpd', keyId: 'd7df56efaa36a71141d238854cc46d1d', key: '8abb2ee9150d8b2af8ebec0de0f833c8', category: 'KIDS' }),
+  createCvattvChannel({ id: 'cartoon-network', name: 'Cartoon Network', shortName: 'Cartoon', color: '#f59e0b', number: 507, url: 'https://cdn.cvattv.com.ar/live/c3eds/CartoonNetwork/SA_Live_dash_cenc/CartoonNetwork.mpd', keyId: 'd7df56efaa36a71141d238854cc46d1d', key: '8abb2ee9150d8b2af8ebec0de0f833c8', category: 'KIDS' }),
   createCvattvChannel({ id: 'dreamworks', name: 'Dreamworks', shortName: 'DW Kids', color: '#0ea5e9', number: 2020, url: 'https://cdn.cvattv.com.ar/live/c7eds/Dreamworks/SA_Live_dash_cenc/Dreamworks.mpd', keyId: '7f30c43e47544412221fd64201d92f4b', key: 'f83d09d75a0946b1d71aa48c201b4d8b', category: 'KIDS' }),
   createCvattvChannel({ id: 'boomerang', name: 'Cartoonito', shortName: 'Boomerang', color: '#f97316', number: 506, url: 'https://cdn.cvattv.com.ar/live/c7eds/Boomerang/SA_Live_dash_cenc/Boomerang.mpd', keyId: '5792e613fceb699c79cbc0e75fe4cd37', key: 'a672793730476ed23e5c1bce2ff570c6', category: 'KIDS' }),
-  createCvattvChannel({ id: 'baby-tv', name: 'Baby TV', shortName: 'Baby TV', color: '#ec4899', number: 307, url: 'https://cdn.cvattv.com.ar/live/c7eds/BabyTV/SA_Live_dash_cenc/BabyTV.mpd', keyId: '9e09f0a3ecb932582e0f3bc6a6194c8d', key: '6d2363b7ba7680ea3bf6dcbad1efa5bf', category: 'KIDS' }),
-  createCvattvChannel({ id: 'tooncast', name: 'Tooncast', shortName: 'Tooncast', color: '#8b5cf6', number: 309, url: 'https://cdn.cvattv.com.ar/live/c6eds/Tooncast/SA_Live_dash_cenc/Tooncast.mpd', keyId: '10638a722eb54c64bfb0e7a77483686a', key: '41a7d3d522e19215b7e8f611b6902d61', category: 'KIDS' }),
-  createCvattvChannel({ id: 'nick-jr', name: 'Nick Jr', shortName: 'Nick Jr', color: '#facc15', number: 311, url: 'https://cdn.cvattv.com.ar/live/c6eds/Nick_Jr/SA_Live_dash_cenc/Nick_Jr.mpd', keyId: 'e824b2277a86fd6adfc40aa948e5064a', key: '28da2dbbe8e1a1463bbb23895b922083', category: 'KIDS' }),
+  createCvattvChannel({ id: 'baby-tv', name: 'Baby TV', shortName: 'Baby TV', color: '#ec4899', number: 505, url: 'https://cdn.cvattv.com.ar/live/c7eds/BabyTV/SA_Live_dash_cenc/BabyTV.mpd', keyId: '9e09f0a3ecb932582e0f3bc6a6194c8d', key: '6d2363b7ba7680ea3bf6dcbad1efa5bf', category: 'KIDS' }),
+  createCvattvChannel({ id: 'tooncast', name: 'Tooncast', shortName: 'Tooncast', color: '#8b5cf6', number: 511, url: 'https://cdn.cvattv.com.ar/live/c6eds/Tooncast/SA_Live_dash_cenc/Tooncast.mpd', keyId: '10638a722eb54c64bfb0e7a77483686a', key: '41a7d3d522e19215b7e8f611b6902d61', category: 'KIDS' }),
+  createCvattvChannel({ id: 'nick-jr', name: 'Nick Jr', shortName: 'Nick Jr', color: '#facc15', number: 509, url: 'https://cdn.cvattv.com.ar/live/c6eds/Nick_Jr/SA_Live_dash_cenc/Nick_Jr.mpd', keyId: 'e824b2277a86fd6adfc40aa948e5064a', key: '28da2dbbe8e1a1463bbb23895b922083', category: 'KIDS' }),
   createCvattvChannel({ id: 'kidoo', name: 'Kidoo', shortName: 'Kidoo', color: '#a855f7', number: 2025, url: 'https://cdn.cvattv.com.ar/live/c6eds/Kidoo/SA_Live_dash_cenc/Kidoo.mpd', keyId: 'dcd89337a501ab929c01a039774089dc', key: 'e96cc7be9139a8d581b3f5eebebfc10d', category: 'KIDS' }),
 
   // MOVIES & SERIES
@@ -1217,7 +1261,7 @@ export const channels: Channel[] = [
   createCvattvChannel({ id: 'vorterix', name: 'Vorterix', shortName: 'Vorterix', color: '#ef4444', number: 2065, url: 'https://cdn.cvattv.com.ar/live/c6eds/Vorterix/SA_Live_dash_cenc/Vorterix.mpd', keyId: 'eabe2c22350c26c7f0ad84b34932f08d', key: '39fa06836ec0f81d8dd9b6e01a3070e3', category: 'MUSIC' }),
   createCvattvChannel({ id: 'allegro-hd', name: 'Allegro HD', shortName: 'Allegro', color: '#f59e0b', number: 2066, url: 'https://cdn.cvattv.com.ar/live/c7eds/AllegroHD/SA_Live_dash_cenc/AllegroHD.mpd', keyId: 'e55e61b81b992d6c21466891d72157e9', key: '566d341bf7209a88976e75c20ad7aca2', category: 'MUSIC' }),
   createCvattvChannel({ id: 'mtv-00', name: 'MTV 00', shortName: 'MTV 00', color: '#d946ef', number: 2067, url: 'https://cdn.cvattv.com.ar/live/c7eds/MTV00/SA_Live_dash_cenc/MTV00.mpd', keyId: '1f0c09ed9e5841cf867ba6eb3cdfd61d', key: '802c89c6bae6a245aaafcf40c1986fc1', category: 'MUSIC' }),
-  createCvattvChannel({ id: 'htv', name: 'HTV', shortName: 'HTV', color: '#a855f7', number: 508, url: 'https://cdn.cvattv.com.ar/live/c6eds/HTV/SA_Live_dash_cenc/HTV.mpd', keyId: 'daecef5fe32f4ce083c6a0c692755d6a', key: 'd4227f24389a9ba77293214b93eb0d7d', category: 'MUSIC' }),
+  createCvattvChannel({ id: 'htv', name: 'HTV', shortName: 'HTV', color: '#a855f7', number: 751, url: 'https://cdn.cvattv.com.ar/live/c6eds/HTV/SA_Live_dash_cenc/HTV.mpd', keyId: 'daecef5fe32f4ce083c6a0c692755d6a', key: 'd4227f24389a9ba77293214b93eb0d7d', category: 'MUSIC' }),
   createCvattvChannel({ id: 'mtv-hits', name: 'MTV Hits', shortName: 'MTV Hits', color: '#c026d3', number: 2069, url: 'https://cdn.cvattv.com.ar/live/c6eds/MTV_Hits/SA_Live_dash_cenc/MTV_Hits.mpd', keyId: '61008dfc867544cd872de99b1f2b82cf', key: '716449756316b91c54803aaa22a2fbf0', category: 'MUSIC' }),
   createCvattvChannel({ id: 'nickmusic', name: 'Nickmusic', shortName: 'Nickmusic', color: '#facc15', number: 2070, url: 'https://cdn.cvattv.com.ar/live/c6eds/Nickmusic/SA_Live_dash_cenc/Nickmusic.mpd', keyId: 'eae6c12ccab349e6ae675ab6ed8a476c', key: '4a4fd86ea9db4417ec86c237d3111b18', category: 'MUSIC' }),
   createCvattvChannel({ id: 'flow-music-xp', name: 'Flow Music XP', shortName: 'Flow XP', color: '#0ea5e9', number: 2071, url: 'https://cdn.cvattv.com.ar/live/c7eds/Flow_Music_XP/SA_Live_dash_cenc/Flow_Music_XP.mpd', keyId: 'b2aae44a74144be8b2118e20d1412bab', key: '8a7ae996d12d8d5d5637d1044f8e08b7', category: 'MUSIC' }),
@@ -1230,7 +1274,7 @@ export const channels: Channel[] = [
   createCvattvChannel({ id: 'cnn-espanol', name: 'CNN en Español', shortName: 'CNN Esp', color: '#dc2626', number: 800, url: 'https://cdn.cvattv.com.ar/live/c6eds/CNN_en_Espanol/SA_Live_dash_cenc/CNN_en_Espanol.mpd', keyId: '0b20ed9da0e5457c9dfd3ae0b6092491', key: '98997a7020c18cb28174a2490147830a', category: 'OTHER' }),
   createCvattvChannel({ id: 'cnn-internacional', name: 'CNN Internacional', shortName: 'CNN Intl', color: '#ef4444', number: 801, url: 'https://cdn.cvattv.com.ar/live/c6eds/CNN_Internacional/SA_Live_dash_cenc/CNN_Internacional.mpd', keyId: '9f24708ad1184ee3a04b650941f9894b', key: 'e5bc7c5ff392119423dbf1c023a7b21c', category: 'OTHER' }),
   createCvattvChannel({ id: 'bbc-world', name: 'BBC World News', shortName: 'BBC World', color: '#dc2626', number: 803, url: 'https://cdn.cvattv.com.ar/live/c6eds/BBC_World_News/SA_Live_dash_cenc/BBC_World_News.mpd', keyId: '019f72f2091d4cbea59ff8c85b117f86', key: 'a4eac51195506752f9f63ad24def9c37', category: 'OTHER' }),
-  createCvattvChannel({ id: 'fox-news', name: 'Fox News', shortName: 'Fox News', color: '#1d4ed8', number: 611, url: 'https://cdn.cvattv.com.ar/live/c6eds/Fox_News/SA_Live_dash_cenc/Fox_News.mpd', keyId: '3fe3f31a5e7b48a1b548e9364757ce66', key: '32993fc281207fe915f6f1e990957868', category: 'OTHER' }),
+  createCvattvChannel({ id: 'fox-news', name: 'Fox News', shortName: 'Fox News', color: '#1d4ed8', number: 6110, url: 'https://cdn.cvattv.com.ar/live/c6eds/Fox_News/SA_Live_dash_cenc/Fox_News.mpd', keyId: '3fe3f31a5e7b48a1b548e9364757ce66', key: '32993fc281207fe915f6f1e990957868', category: 'OTHER' }),
   createCvattvChannel({ id: 'al-jazeera', name: 'Al Jazeera', shortName: 'Al Jazeera', color: '#f59e0b', number: 2080, url: 'https://cdn.cvattv.com.ar/live/c7eds/Alljazzera/SA_Live_dash_cenc/Alljazzera.mpd', keyId: '137a1a70fa118b695118a3aad9485b13', key: '7c35ca36d4452dfa03d88725a0d16105', category: 'OTHER' }),
   createCvattvChannel({ id: 'euronews', name: 'Euronews', shortName: 'Euronews', color: '#2563eb', number: 2081, url: 'https://cdn.cvattv.com.ar/live/c7eds/Euronews/SA_Live_dash_cenc/Euronews.mpd', keyId: 'd1c8e5bd9c8a4e7b1c5f0e5a9b2c3f1', key: '4a6c8e5b2d9f4a7c8e5b1a2c3d4e5f6', category: 'OTHER' }),
   createCvattvChannel({ id: 'dw', name: 'DW', shortName: 'DW', color: '#0f172a', number: 610, url: 'https://cdn.cvattv.com.ar/live/c6eds/DW/SA_Live_dash_cenc/DW.mpd', keyId: 'e21fc12c6ee185fbc90a052b05026be9', key: '0f96fd52903707aac0b42853a043ffd0', category: 'OTHER' }),
@@ -1243,3 +1287,31 @@ export const channels: Channel[] = [
   createCvattvChannel({ id: 'argentinisima', name: 'Argentinísima', shortName: 'Argent.', color: '#64748b', number: 2089, url: 'https://cdn.cvattv.com.ar/live/c6eds/Argentinisima/SA_Live_dash_cenc/Argentinisima.mpd', keyId: 'a6243f46366445ebbf3117ec27365481', key: '81667cdc3bcf19a6a66c0919fa00a20b', category: 'OTHER' }),
   createCvattvChannel({ id: 'arirang', name: 'Arirang', shortName: 'Arirang', color: '#0f766e', number: 612, url: 'https://cdn.cvattv.com.ar/live/c7eds/Arirang/SA_Live_dash_cenc/Arirang.mpd', keyId: '436d78a75fad9bdcc6d409640c116a62', key: 'c77471ac3b694513a9c5ff68b8d4fac5', category: 'OTHER' }),
 ]
+
+const categoryOrder = [
+  "GENERAL",
+  "SPORTS",
+  "KIDS",
+  "MOVIES",
+  "DOCUMENTARY",
+  "VARIETY",
+  "MUSIC",
+  "NEWS",
+  "OTHER"
+];
+
+export const channels = channelsRaw
+  .slice() // avoid mutating original array
+  .sort((a, b) => {
+    // First sort by category order
+    const categoryDiff =
+      categoryOrder.indexOf(a.category ?? 'OTHER') -
+      categoryOrder.indexOf(b.category ?? 'OTHER');
+
+    if (categoryDiff !== 0) {
+      return categoryDiff;
+    }
+
+    // Then sort by number ascending inside each category
+    return a.number - b.number;
+  });

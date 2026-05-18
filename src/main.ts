@@ -1,4 +1,4 @@
-import { channels as rawChannels, CHANNEL_ID_BY_NUMBER } from './channels'
+import { channels, CHANNEL_ID_BY_NUMBER } from './channels'
 
 const CATEGORY_ORDER: Record<string, number> = {
   GENERAL: 0,
@@ -11,12 +11,6 @@ const CATEGORY_ORDER: Record<string, number> = {
   VARIETY: 7,
   OTHER: 8,
 }
-
-const channels = [...rawChannels].sort((a, b) => {
-  const catA = CATEGORY_ORDER[a.category ?? ''] ?? 9
-  const catB = CATEGORY_ORDER[b.category ?? ''] ?? 9
-  return catA !== catB ? catA - catB : a.number - b.number
-})
 const TELERED_CHANNEL_NUMBERS = new Set(
   channels
     .filter((channel) => !Object.prototype.hasOwnProperty.call(CHANNEL_ID_BY_NUMBER, channel.number))
