@@ -1,23 +1,85 @@
 import { channels, CHANNEL_ID_BY_NUMBER } from './channels'
 
-const CATEGORY_ORDER: Record<string, number> = {
-  GENERAL: 0,
-  NEWS: 1,
-  SPORTS: 2,
-  MOVIES: 3,
-  DOCUMENTARY: 4,
-  KIDS: 5,
-  MUSIC: 6,
-  VARIETY: 7,
-  OTHER: 8,
-}
 const TELERED_CHANNEL_NUMBERS = new Set(
   channels
-    .filter((channel) => !Object.prototype.hasOwnProperty.call(CHANNEL_ID_BY_NUMBER, channel.number))
-    .map((channel) => channel.number),
+    .filter((channel) => !Object.prototype.hasOwnProperty.call(CHANNEL_ID_BY_NUMBER, channel.movistarNumber))
+    .map((channel) => channel.movistarNumber),
 )
 import { ShakaPlayer } from './player'
 import { GridNavigation, type NavigationCell } from './navigation'
+
+// Platform abstraction for Android (Capacitor) and Tizen
+interface PlatformAPI {
+  isNative: boolean
+  closeApp: () => Promise<void>
+  onBackButton: (callback: () => Promise<void>) => void
+}
+
+function getPlatformAPI(): PlatformAPI {
+  // Check for Tizen
+  if ('tizen' in window) {
+    return {
+      isNative: true,
+      closeApp: async () => {
+        try {
+          (window as any).tizen.application.getCurrentApplication().exit()
+        } catch (e) {
+          console.warn('Tizen exit failed:', e)
+        }
+      },
+      onBackButton: (callback: () => Promise<void>) => {
+        try {
+          (window as any).tizen.inputdevice.registerKey('0')
+          document.addEventListener('keydown', (event: KeyboardEvent) => {
+            if (event.keyCode === 10009 || event.key === 'Backspace' || event.key === 'BrowserBack') {
+              event.preventDefault()
+              callback().catch(console.error)
+            }
+          })
+        } catch (e) {
+          console.warn('Tizen back button registration failed:', e)
+        }
+      },
+    }
+  }
+
+  // Fallback to Capacitor (Android)
+  if ('Capacitor' in window) {
+    const cap = (window as any).Capacitor
+    return {
+      isNative: !!cap.isNativePlatform?.(),
+      closeApp: async () => {
+        try {
+          cap.exec('App', 'exit', {})
+        } catch {
+          if ('app' in navigator) {
+            (navigator as any).app.exitApp()
+          }
+        }
+      },
+      onBackButton: (callback: () => Promise<void>) => {
+        try {
+          cap.Plugins?.App?.addListener('backButton', callback)
+        } catch (e) {
+          console.warn('Capacitor back button registration failed:', e)
+        }
+      },
+    }
+  }
+
+  // Web fallback (no native platform)
+  return {
+    isNative: false,
+    closeApp: async () => {
+      console.warn('closeApp: not on native platform')
+    },
+    onBackButton: () => {
+      console.warn('onBackButton: not on native platform')
+    },
+  }
+}
+
+const platformAPI = getPlatformAPI()
 
 shaka.polyfill.installAll()
 
@@ -50,22 +112,22 @@ interface GuideApiResponse {
   data?: GuideApiProgram[]
 }
 
-interface GuideEndpointProgram {
-  title: string
-  startDate?: string | null
-  endDate?: string | null
-  raw?: string
-}
+// interface GuideEndpointProgram {
+//   title: string
+//   startDate?: string | null
+//   endDate?: string | null
+//   raw?: string
+// }
 
-interface GuideEndpointChannel {
-  name: string
-  channelNumber?: number | null
-  programs: GuideEndpointProgram[]
-}
+// interface GuideEndpointChannel {
+//   name: string
+//   channelNumber?: number | null
+//   programs: GuideEndpointProgram[]
+// }
 
-interface GuideEndpointResponse {
-  channels: GuideEndpointChannel[]
-}
+// interface GuideEndpointResponse {
+//   channels: GuideEndpointChannel[]
+// }
 
 interface ContentApiItem {
   Pid?: string
@@ -186,27 +248,7 @@ function showBackPressTooltip(): void {
 }
 
 async function closeApp(): Promise<void> {
-  if ('Capacitor' in window) {
-    const cap = (window as any).Capacitor
-    if (cap.isNativePlatform?.()) {
-      cap.nativeChannel?.postMessage({
-        type: 'events',
-        channel: 'APP',
-        event: 'appStateChange',
-        data: { isActive: false },
-      })
-
-      try {
-        cap.exec('App', 'exit', {})
-      } catch {
-        if ('app' in navigator) {
-          (navigator as any).app.exitApp()
-        }
-      }
-    }
-  } else if ('app' in navigator) {
-    (navigator as any).app.exitApp()
-  }
+  await platformAPI.closeApp()
 }
 
 const gridHero = document.createElement('section')
@@ -247,9 +289,7 @@ currentTimeFab.setAttribute('aria-label', 'Volver a la hora actual')
 screenGrid.appendChild(currentTimeFab)
 
 function isNativePlatform(): boolean {
-  if (!('Capacitor' in window)) return false
-  const cap = (window as any).Capacitor
-  return !!cap.isNativePlatform?.()
+  return platformAPI.isNative
 }
 
 function isCurrentTimeVisible(): boolean {
@@ -278,7 +318,7 @@ currentTimeFab.addEventListener('click', () => {
 
 function setChannelLogos(logoMap: Record<number, string>): void {
   channels.forEach((ch) => {
-    const logoUrl = ch.image ?? logoMap[ch.number]
+    const logoUrl = ch.image ?? logoMap[ch.movistarNumber]
     const logoEl = document.getElementById(`grid-logo-${ch.id}`)
     if (logoUrl && logoEl instanceof HTMLElement) {
       logoEl.style.backgroundImage = `url('${logoUrl}')`
@@ -707,115 +747,115 @@ function buildTimelineHeader(): void {
   timelineHeader.append(spacer, track)
 }
 
-function extractBackgroundImageUrl(element: HTMLElement | null): string | null {
-  if (!element) return null
-  const styleValue = element.style.backgroundImage || element.getAttribute('style') || ''
-  const match = styleValue.match(/url\(['"]?(.*?)['"]?\)/)
-  if (!match?.[1]) return null
+// function extractBackgroundImageUrl(element: HTMLElement | null): string | null {
+//   if (!element) return null
+//   const styleValue = element.style.backgroundImage || element.getAttribute('style') || ''
+//   const match = styleValue.match(/url\(['"]?(.*?)['"]?\)/)
+//   if (!match?.[1]) return null
 
-  let url = match[1]
-  if (url.startsWith('//')) {
-    url = `https:${url}`
-  } else if (url.startsWith('/')) {
-    url = `https://www.telered.com.ar${url}`
-  }
+//   let url = match[1]
+//   if (url.startsWith('//')) {
+//     url = `https:${url}`
+//   } else if (url.startsWith('/')) {
+//     url = `https://www.telered.com.ar${url}`
+//   }
 
-  return url
-}
+//   return url
+// }
 
-function extractGuideDataFromHtmlV1(html: string): { schedule: Record<number, GuideProgram[]>, logoMap: Record<number, string> } {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  const channelRows = Array.from(doc.querySelectorAll('ul.listacanales > li'))
-  const schedule: Record<number, GuideProgram[]> = {}
-  const logoMap: Record<number, string> = {}
+// function extractGuideDataFromHtmlV1(html: string): { schedule: Record<number, GuideProgram[]>, logoMap: Record<number, string> } {
+//   const doc = new DOMParser().parseFromString(html, 'text/html')
+//   const channelRows = Array.from(doc.querySelectorAll('ul.listacanales > li'))
+//   const schedule: Record<number, GuideProgram[]> = {}
+//   const logoMap: Record<number, string> = {}
 
-  channelRows.forEach((row) => {
-    const numberText = row.querySelector('.chtitle .chnumheader')?.textContent?.trim() ?? ''
-    const numberMatch = numberText.match(/\d+/)
-    if (!numberMatch) return
+//   channelRows.forEach((row) => {
+//     const numberText = row.querySelector('.chtitle .chnumheader')?.textContent?.trim() ?? ''
+//     const numberMatch = numberText.match(/\d+/)
+//     if (!numberMatch) return
 
-    const channelNumber = Number(numberMatch[0])
-    if (Number.isNaN(channelNumber)) return
+//     const channelNumber = Number(numberMatch[0])
+//     if (Number.isNaN(channelNumber)) return
 
-    const logoEl = row.querySelector('.chtitle .logowrapper') as HTMLElement | null
-    const logoUrl = extractBackgroundImageUrl(logoEl)
-    if (logoUrl) {
-      logoMap[channelNumber] = logoUrl
-    }
+//     const logoEl = row.querySelector('.chtitle .logowrapper') as HTMLElement | null
+//     const logoUrl = extractBackgroundImageUrl(logoEl)
+//     if (logoUrl) {
+//       logoMap[channelNumber] = logoUrl
+//     }
 
-    const programRows = Array.from(row.querySelectorAll('ul li[data-horadesdeex][data-horahastaex]'))
-    const programs: GuideProgram[] = []
+//     const programRows = Array.from(row.querySelectorAll('ul li[data-horadesdeex][data-horahastaex]'))
+//     const programs: GuideProgram[] = []
 
-    programRows.forEach((programRow) => {
-      const start = programRow.getAttribute('data-horadesdeex')?.trim() ?? ''
-      const end = programRow.getAttribute('data-horahastaex')?.trim() ?? ''
-      const title = programRow.querySelector('.programwrapper')?.textContent?.trim().replace(/\s+/g, ' ') ?? ''
-      if (!start || !end || !title) return
-      programs.push({ start, end, title })
-    })
+//     programRows.forEach((programRow) => {
+//       const start = programRow.getAttribute('data-horadesdeex')?.trim() ?? ''
+//       const end = programRow.getAttribute('data-horahastaex')?.trim() ?? ''
+//       const title = programRow.querySelector('.programwrapper')?.textContent?.trim().replace(/\s+/g, ' ') ?? ''
+//       if (!start || !end || !title) return
+//       programs.push({ start, end, title })
+//     })
 
-    if (programs.length > 0) {
-      schedule[channelNumber] = programs
-    }
-  })
+//     if (programs.length > 0) {
+//       schedule[channelNumber] = programs
+//     }
+//   })
 
-  if (channelRows.length === 0) {
-    const fallbackRows = Array.from(doc.querySelectorAll('li')).filter((row) => {
-      const text = row.textContent ?? ''
-      return /Ver\s+m[áa]s/i.test(text) && /\d{1,4}/.test(text)
-    })
+//   if (channelRows.length === 0) {
+//     const fallbackRows = Array.from(doc.querySelectorAll('li')).filter((row) => {
+//       const text = row.textContent ?? ''
+//       return /Ver\s+m[áa]s/i.test(text) && /\d{1,4}/.test(text)
+//     })
 
-    fallbackRows.forEach((row) => {
-      const rowText = (row.textContent ?? '').replace(/\s+/g, ' ').trim()
-      const numberMatch = rowText.match(/(\d{1,4})\s*Ver\s+m[áa]s/i) ?? rowText.match(/^(\d{1,4})\b/)
-      if (!numberMatch) return
+//     fallbackRows.forEach((row) => {
+//       const rowText = (row.textContent ?? '').replace(/\s+/g, ' ').trim()
+//       const numberMatch = rowText.match(/(\d{1,4})\s*Ver\s+m[áa]s/i) ?? rowText.match(/^(\d{1,4})\b/)
+//       if (!numberMatch) return
 
-      const channelNumber = Number(numberMatch[1])
-      if (Number.isNaN(channelNumber)) return
+//       const channelNumber = Number(numberMatch[1])
+//       if (Number.isNaN(channelNumber)) return
 
-      const programItems = Array.from(row.querySelectorAll('ul li'))
-      const programStarts: { title: string, start: string }[] = []
+//       const programItems = Array.from(row.querySelectorAll('ul li'))
+//       const programStarts: { title: string, start: string }[] = []
 
-      programItems.forEach((programRow) => {
-        const programText = (programRow.textContent ?? '').replace(/\s+/g, ' ').trim()
-        const timeMatch = programText.match(/(\d{1,2}:\d{2})\s*hs/i)
-        if (!timeMatch) return
+//       programItems.forEach((programRow) => {
+//         const programText = (programRow.textContent ?? '').replace(/\s+/g, ' ').trim()
+//         const timeMatch = programText.match(/(\d{1,2}:\d{2})\s*hs/i)
+//         if (!timeMatch) return
 
-        const start = timeMatch[1]
-        const title = programText.replace(timeMatch[0], '').trim()
-        if (!title) return
-        programStarts.push({ title, start })
-      })
+//         const start = timeMatch[1]
+//         const title = programText.replace(timeMatch[0], '').trim()
+//         if (!title) return
+//         programStarts.push({ title, start })
+//       })
 
-      if (programStarts.length === 0) return
+//       if (programStarts.length === 0) return
 
-      const programs: GuideProgram[] = programStarts.map((program, index) => {
-        const next = programStarts[index + 1]
-        const end = next?.start ?? '00:00'
-        return { start: program.start, end, title: program.title }
-      })
+//       const programs: GuideProgram[] = programStarts.map((program, index) => {
+//         const next = programStarts[index + 1]
+//         const end = next?.start ?? '00:00'
+//         return { start: program.start, end, title: program.title }
+//       })
 
-      schedule[channelNumber] = programs
-    })
-  }
+//       schedule[channelNumber] = programs
+//     })
+//   }
 
-  return { schedule, logoMap }
-}
+//   return { schedule, logoMap }
+// }
 
-function parseMovistarProgramText(text: string): GuideProgram | null {
-  const compact = text.replace(/\s+/g, ' ').trim()
-  if (!compact) return null
+// function parseMovistarProgramText(text: string): GuideProgram | null {
+//   const compact = text.replace(/\s+/g, ' ').trim()
+//   if (!compact) return null
 
-  const match = compact.match(/^(.*?)(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/)
-  if (!match) return null
+//   const match = compact.match(/^(.*?)(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/)
+//   if (!match) return null
 
-  const title = match[1].trim()
-  const start = match[2]
-  const end = match[3]
-  if (!title || !start || !end) return null
+//   const title = match[1].trim()
+//   const start = match[2]
+//   const end = match[3]
+//   if (!title || !start || !end) return null
 
-  return { title, start, end }
-}
+//   return { title, start, end }
+// }
 
 function normalizeChannelName(value: string): string {
   return value
@@ -832,58 +872,58 @@ function buildChannelNameIndex(): Map<string, number> {
     variants.forEach((name) => {
       const normalized = normalizeChannelName(name)
       if (normalized && !index.has(normalized)) {
-        index.set(normalized, channel.number)
+        index.set(normalized, channel.movistarNumber)
       }
     })
   })
   return index
 }
 
-function extractGuideDataFromHtmlV2(html: string): { schedule: Record<number, GuideProgram[]>, logoMap: Record<number, string> } {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  const schedule: Record<number, GuideProgram[]> = {}
-  const logoMap: Record<number, string> = {}
+// function extractGuideDataFromHtmlV2(html: string): { schedule: Record<number, GuideProgram[]>, logoMap: Record<number, string> } {
+//   const doc = new DOMParser().parseFromString(html, 'text/html')
+//   const schedule: Record<number, GuideProgram[]> = {}
+//   const logoMap: Record<number, string> = {}
 
-  const wrapper = doc.querySelector('div[class*="schedulesWrapper"]')
-  const channelsWrapper = doc.querySelector('div[class*="channels"]')
-  if (!wrapper || !channelsWrapper) return { schedule, logoMap }
+//   const wrapper = doc.querySelector('div[class*="schedulesWrapper"]')
+//   const channelsWrapper = doc.querySelector('div[class*="channels"]')
+//   if (!wrapper || !channelsWrapper) return { schedule, logoMap }
 
-  const rows = Array.from(wrapper.children).filter((node): node is HTMLElement => node instanceof HTMLElement)
-  const rowPrograms: GuideProgram[][] = rows.map((row) => {
-    const programs: GuideProgram[] = []
-    const items = row.querySelectorAll('article[class*="scheduleItem"]')
-    items.forEach((item) => {
-      const parsed = parseMovistarProgramText(item.textContent ?? '')
-      if (parsed) programs.push(parsed)
-    })
-    return programs
-  })
+//   const rows = Array.from(wrapper.children).filter((node): node is HTMLElement => node instanceof HTMLElement)
+//   const rowPrograms: GuideProgram[][] = rows.map((row) => {
+//     const programs: GuideProgram[] = []
+//     const items = row.querySelectorAll('article[class*="scheduleItem"]')
+//     items.forEach((item) => {
+//       const parsed = parseMovistarProgramText(item.textContent ?? '')
+//       if (parsed) programs.push(parsed)
+//     })
+//     return programs
+//   })
 
-  const channelNameIndex = buildChannelNameIndex()
-  const channelRows = Array.from(channelsWrapper.querySelectorAll('div[class*="channel"]'))
-  const channelNames = channelRows
-    .map((row) => row.querySelector('a')?.getAttribute('title')?.trim() ?? '')
-    .filter((name) => name.length > 0)
+//   const channelNameIndex = buildChannelNameIndex()
+//   const channelRows = Array.from(channelsWrapper.querySelectorAll('div[class*="channel"]'))
+//   const channelNames = channelRows
+//     .map((row) => row.querySelector('a')?.getAttribute('title')?.trim() ?? '')
+//     .filter((name) => name.length > 0)
 
-  if (rowPrograms.every((row) => row.length === 0) || channelNames.length === 0) {
-    return { schedule, logoMap }
-  }
+//   if (rowPrograms.every((row) => row.length === 0) || channelNames.length === 0) {
+//     return { schedule, logoMap }
+//   }
 
-  const totalRows = Math.min(channelNames.length, rowPrograms.length)
-  for (let i = 0; i < totalRows; i += 1) {
-    const channelName = channelNames[i]
-    const normalized = normalizeChannelName(channelName)
-    const channelNumber = normalized ? channelNameIndex.get(normalized) : undefined
-    if (!channelNumber) continue
+//   const totalRows = Math.min(channelNames.length, rowPrograms.length)
+//   for (let i = 0; i < totalRows; i += 1) {
+//     const channelName = channelNames[i]
+//     const normalized = normalizeChannelName(channelName)
+//     const channelNumber = normalized ? channelNameIndex.get(normalized) : undefined
+//     if (!channelNumber) continue
 
-    const programs = rowPrograms[i]
-    if (programs.length === 0) continue
+//     const programs = rowPrograms[i]
+//     if (programs.length === 0) continue
 
-    schedule[channelNumber] = programs
-  }
+//     schedule[channelNumber] = programs
+//   }
 
-  return { schedule, logoMap }
-}
+//   return { schedule, logoMap }
+// }
 
 function hasChannelSchedule(schedule: Record<number, GuideProgram[]>, channelNumber: number): boolean {
   return (schedule[channelNumber]?.length ?? 0) > 0
@@ -951,15 +991,15 @@ async function ensureMissingChannelSchedules(
   let needsTeleredRefresh = false
 
   channels.forEach((channel) => {
-    if (hasChannelSchedule(schedule, channel.number)) return
+    if (hasChannelSchedule(schedule, channel.movistarNumber)) return
 
-    if (TELERED_CHANNEL_NUMBERS.has(channel.number)) {
+    if (TELERED_CHANNEL_NUMBERS.has(channel.movistarNumber)) {
       needsTeleredRefresh = true
       return
     }
 
-    if (Object.prototype.hasOwnProperty.call(CHANNEL_ID_BY_NUMBER, channel.number)) {
-      missingApiChannels.push(channel.number)
+    if (Object.prototype.hasOwnProperty.call(CHANNEL_ID_BY_NUMBER, channel.movistarNumber)) {
+      missingApiChannels.push(channel.movistarNumber)
     }
   })
 
@@ -1120,7 +1160,6 @@ async function fetchGuideScheduleFromHtml(dayOffset = 0): Promise<{ schedule: Re
   const range = getArgentinaDayRange(dayOffset)
   const schedule: Record<number, GuideProgram[]> = {}
   const channelNameIndex = buildChannelNameIndex()
-  const channelNameByNumber = new Map<number, string>()
 
   for (const chunk of CHANNEL_PID_CHUNKS) {
     let items: ContentApiItem[] = []
@@ -1141,10 +1180,6 @@ async function fetchGuideScheduleFromHtml(dayOffset = 0): Promise<{ schedule: Re
       const normalized = normalizeChannelName(channelName)
       const channelNumber = channelNumberValue ?? (normalized ? channelNameIndex.get(normalized) : undefined)
       if (!channelNumber) return
-
-      if (!channelNameByNumber.has(channelNumber)) {
-        channelNameByNumber.set(channelNumber, channelName)
-      }
 
       const startEpoch = toContentEpochSeconds(item.Start)
       const endEpoch = toContentEpochSeconds(item.End)
@@ -1167,16 +1202,6 @@ async function fetchGuideScheduleFromHtml(dayOffset = 0): Promise<{ schedule: Re
     programs.sort((a, b) => a.start.localeCompare(b.start))
   })
 
-  try {
-    const channelList = Array.from(channelNameByNumber.entries())
-      .map(([number, name]) => ({ number, name }))
-      .sort((a, b) => a.number - b.number)
-    localStorage.setItem('guide-cache-v2-channels', JSON.stringify(channelList))
-    console.info('[guide] channel list', channelList)
-  } catch {
-    // Ignore storage/logging errors.
-  }
-
   return { schedule, logoMap: {} }
 }
 
@@ -1188,7 +1213,7 @@ async function loadGuideNowPlaying(scheduleOverride?: Record<number, GuideProgra
     const nowElement = guideItems[i]?.querySelector('.guide-item-now') as HTMLElement | null
     if (!nowElement) return
 
-    const currentProgram = getCurrentProgram(cachedSchedule[ch.number] ?? [], nowMinutes)
+    const currentProgram = getCurrentProgram(cachedSchedule[ch.movistarNumber] ?? [], nowMinutes)
     nowElement.textContent = currentProgram
       ? `${currentProgram.start}-${currentProgram.end} ${currentProgram.title}`
       : 'Sin programa en vivo'
@@ -1201,7 +1226,7 @@ async function loadGuideNowPlaying(scheduleOverride?: Record<number, GuideProgra
         const nowElement = guideItems[i]?.querySelector('.guide-item-now') as HTMLElement | null
         if (!nowElement) return
 
-        const currentProgram = getCurrentProgram(schedule[ch.number] ?? [], refreshedMinutes)
+        const currentProgram = getCurrentProgram(schedule[ch.movistarNumber] ?? [], refreshedMinutes)
         nowElement.textContent = currentProgram
           ? `${currentProgram.start}-${currentProgram.end} ${currentProgram.title}`
           : 'Sin programa en vivo'
@@ -1451,9 +1476,9 @@ function renderEpgGrid(schedule: Record<number, GuideProgram[]>): void {
     lane.className = 'channel-programs'
     lane.style.width = `${totalWidth}px`
 
-    const normalizedPrograms = normalizeProgramsInSourceOrder(schedule[channel.number] ?? [])
+    const normalizedPrograms = normalizeProgramsInSourceOrder(schedule[channel.movistarNumber] ?? [])
 
-    const currentProgram = getCurrentProgram(schedule[channel.number] ?? [], nowMinutes)
+    const currentProgram = getCurrentProgram(schedule[channel.movistarNumber] ?? [], nowMinutes)
     const cells: RenderableProgramCell[] = []
 
     normalizedPrograms.forEach((program, programIndex) => {
@@ -1537,10 +1562,13 @@ async function openChannel(index: number): Promise<void> {
   if (!ch) return
 
   currentChannelIndex = index
+  // Keep the grid focus in sync so returning to the grid restores
+  // the last-viewed channel instead of jumping to the start.
+  focusedGridChannelRow = index
   overlayChannelNumber.textContent = `${ch.number}`
   overlayChannelName.textContent = ch.name
 
-  const logoUrl = ch.image ?? liveGuideLogoMap[ch.number]
+  const logoUrl = ch.image ?? liveGuideLogoMap[ch.movistarNumber]
   loadingLogo.style.backgroundImage = logoUrl ? `url('${logoUrl}')` : ''
   loadingNumber.textContent = `Canal ${ch.number}`
   loadingName.textContent = ch.name
@@ -1627,7 +1655,7 @@ function scheduleGuideRefresh(scheduleByChannelNumber: Record<number, GuideProgr
   let minMinutesUntilEnd: number | null = null
 
   channels.forEach((channel) => {
-    const currentProgram = getCurrentProgram(scheduleByChannelNumber[channel.number] ?? [], nowMinutes)
+    const currentProgram = getCurrentProgram(scheduleByChannelNumber[channel.movistarNumber] ?? [], nowMinutes)
     if (!currentProgram) return
 
     const endMinutes = parseHourToMinutes(currentProgram.end)
@@ -1776,32 +1804,25 @@ guideItems.forEach((item, i) => {
   })
 })
 
-if ('Capacitor' in window) {
-  const cap = (window as any).Capacitor
-  try {
-    cap.Plugins?.App?.addListener('backButton', async () => {
-      const now = Date.now()
-      if (currentScreen === 'grid') {
-        if (!isCurrentTimeVisible()) {
-          jumpToCurrentTime()
-          lastBackPressTime = now
-          return
-        }
-        if (now - lastBackPressTime < DOUBLE_BACK_TIMEOUT) {
-          await closeApp()
-        } else {
-          showBackPressTooltip()
-        }
-        lastBackPressTime = now
-      } else {
-        if (isGuideOpen) {
-          closeGuide()
-        } else {
-          await returnToGrid()
-        }
-      }
-    })
-  } catch {
-    // Capacitor not available, will use keyboard events
+platformAPI.onBackButton(async () => {
+  const now = Date.now()
+  if (currentScreen === 'grid') {
+    if (!isCurrentTimeVisible()) {
+      jumpToCurrentTime()
+      lastBackPressTime = now
+      return
+    }
+    if (now - lastBackPressTime < DOUBLE_BACK_TIMEOUT) {
+      await closeApp()
+    } else {
+      showBackPressTooltip()
+    }
+    lastBackPressTime = now
+  } else {
+    if (isGuideOpen) {
+      closeGuide()
+    } else {
+      await returnToGrid()
+    }
   }
-}
+})

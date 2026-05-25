@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget
+  xmlns="http://www.w3.org/ns/widgets"
+  xmlns:tizen="http://tizen.org/ns/widgets"
+  id="http://example.com/argentina-tv"
+  version="1.0.4"
+  viewmodes="fullscreen">
+  <tizen:application id="123456789.argentinatv" package="123456789" required_version="2.3.0"/>
+  <content src="index.html"/>
+  <feature name="http://tizen.org/feature/screen.size.normal.1080"/>
+  <icon src="public/tv-argentina-logo.png"/>
+  <name>Argentina TV</name>
+  <description>Disfruta de todos los canales en un solo lugar</description>
+  <author href="https://argentina.tv" email="info@argentina.tv">Argentina TV</author>
+  
+  <!-- Network access permissions for video streaming -->
+  <access origin="*"/>
+  
+  <!-- Feature requirements for TV -->
+  <feature name="http://tizen.org/feature/display"/>
+  <feature name="http://tizen.org/feature/input.keyboard"/>
+  
+  <!-- TV specific metadata -->
+  <tizen:metadata key="http://tizen.org/metadata/allow_network_access" value="true"/>
+  <tizen:metadata key="http://tizen.org/metadata/prefer_gpu_rendering" value="true"/>
+  
+  <!-- Tizen TV specific configuration -->
+  <tizen:setting screen-orientation="landscape" context-menu="enable" back-button="enable" exit-on-hardware-back-button="true"/>
+</widget>

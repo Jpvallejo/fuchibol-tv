@@ -43,7 +43,9 @@ export class ShakaPlayer {
       this.callbacks.onLoaded()
     } catch {
       if (channel.fallback) {
-        player.configure({ drm: { clearKeys: { [channel.fallback.keyId]: channel.fallback.key } } })
+        if(channel.fallback.keyId && channel.fallback.key) {
+          player.configure({ drm: { clearKeys: { [channel.fallback.keyId]: channel.fallback.key } } })
+        }
         try {
           await player.load(channel.fallback.url)
           this.callbacks.onLoaded()
