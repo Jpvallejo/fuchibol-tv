@@ -17,6 +17,8 @@ export class GridNavigation {
   private focusRowIndex = 0
   private focusProgramIndex = 0
   private focusMinutes = 0
+  private prevFocusRowIndex = -1
+  private prevFocusProgramIndex = -1
 
   constructor(rows: NavigationCell[][]) {
     this.rows = rows
@@ -27,6 +29,8 @@ export class GridNavigation {
     this.focusRowIndex = 0
     this.focusProgramIndex = 0
     this.focusMinutes = 0
+    this.prevFocusRowIndex = -1
+    this.prevFocusProgramIndex = -1
   }
 
   focusFirst(rowIndex = 0, programIndex = 0): void {
@@ -75,7 +79,7 @@ export class GridNavigation {
   }
 
   restoreFocus(): void {
-    this.applyFocus()
+    this.applyFocus(this.prevFocusRowIndex, this.prevFocusProgramIndex)
   }
 
   private moveHorizontal(delta: number): boolean {
@@ -112,23 +116,48 @@ export class GridNavigation {
     const cell = row[programIndex]
     if (!cell) return
 
+    if (this.focusRowIndex === rowIndex && this.focusProgramIndex === programIndex) return
+
+    this.prevFocusRowIndex = this.focusRowIndex
+    this.prevFocusProgramIndex = this.focusProgramIndex
+
     this.focusRowIndex = rowIndex
     this.focusProgramIndex = programIndex
     this.focusMinutes = this.getCellCenterMinutes(cell)
-    this.applyFocus()
+    this.applyFocus(this.prevFocusRowIndex, this.prevFocusProgramIndex)
   }
 
-  private applyFocus(): void {
-    this.rows.forEach((row, rowIndex) => {
-      row.forEach((cell, cellIndex) => {
-        const focused = rowIndex === this.focusRowIndex && cellIndex === this.focusProgramIndex
-        cell.element.classList.toggle('focused', focused)
-        if (focused) {
-          cell.element.focus()
-          cell.element.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-        }
-      })
-    })
+  // Only update previous and current focused cells to minimize DOM operations.
+  private applyFocus(prevRowIndex: number, prevProgramIndex: number): void {
+    // Clear previous focused cell
+    if (prevRowIndex >= 0 && prevRowIndex < this.rows.length) {
+      const prevRow = this.rows[prevRowIndex]
+      if (prevRow && prevProgramIndex >= 0 && prevProgramIndex < prevRow.length) {
+        prevRow[prevProgramIndex].element.classList.remove('focused')
+      }
+    }
+
+    // Set new focused cell
+    const row = this.rows[this.focusRowIndex]
+    if (!row || this.focusProgramIndex < 0 || this.focusProgramIndex >= row.length) return
+
+    const cell = row[this.focusProgramIndex]
+    cell.element.classList.add('focused')
+    try {
+      cell.element.focus()
+    } catch {
+      // ignore focus errors
+    }
+
+    // Only scroll if the element is not already visible (reduces layout thrashing)
+    const rect = cell.element.getBoundingClientRect()
+    const parent = cell.element.parentElement || document.documentElement
+    const parentRect = parent.getBoundingClientRect()
+    const verticallyVisible = rect.top >= parentRect.top && rect.bottom <= parentRect.bottom
+    const horizontallyVisible = rect.left >= parentRect.left && rect.right <= parentRect.right
+    if (!verticallyVisible || !horizontallyVisible) {
+      cell.element.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    }
   }
 
   private findFirstAvailableCell(): FocusPosition | null {
