@@ -53,7 +53,7 @@ async function fetchCvattvStreamUrl(path: string): Promise<string> {
     throw new Error('CVATTV resolver did not return redirectUrl')
   }
 
-  return payload.redirectUrl
+  // return payload.redirectUrl;
 }
 
 import { getLa14Url } from "./la14-url-extractor";
