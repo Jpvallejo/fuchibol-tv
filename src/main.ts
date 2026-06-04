@@ -1,12 +1,16 @@
-import { channels, CHANNEL_ID_BY_NUMBER } from './channels'
-
-const TELERED_CHANNEL_NUMBERS = new Set(
-  channels
-    .filter((channel) => !Object.prototype.hasOwnProperty.call(CHANNEL_ID_BY_NUMBER, channel.movistarNumber))
-    .map((channel) => channel.movistarNumber),
-)
+import { channels } from './channels'
 import { ShakaPlayer } from './player'
+import fetchTvPassportGuide from './tvpassport-guide'
 import { GridNavigation, type NavigationCell } from './navigation'
+
+// Tvpassport guide URLs for OTA channels
+const TVPASSPORT_URLS: Record<number, string> = {
+  500: 'https://www.tvpassport.com/tv-listings/stations/cbs-kmtv-omaha-ne/1243',
+  501: 'https://www.tvpassport.com/tv-listings/stations/cbs-wtvr-richmond-va/1695',
+  502: 'https://www.tvpassport.com/tv-listings/stations/cbs-kcci-des-moines/1248',
+  503: 'https://www.tvpassport.com/tv-listings/stations/cbs-kwtv-oklahoma-city-ok/1504',
+  504: 'https://www.tvpassport.com/tv-listings/stations/abc-wcvb-boston-ma-hd/3661',
+}
 
 // Platform abstraction for Android (Capacitor) and Tizen
 interface PlatformAPI {
@@ -100,18 +104,6 @@ interface NormalizedGuideProgram extends GuideProgram {
   wrapsDay: boolean
 }
 
-interface GuideApiProgram {
-  start: string
-  end: string
-  name?: {
-    es?: string
-  }
-}
-
-interface GuideApiResponse {
-  data?: GuideApiProgram[]
-}
-
 // interface GuideEndpointProgram {
 //   title: string
 //   startDate?: string | null
@@ -173,7 +165,6 @@ const CELL_MARGIN_TOTAL_PX = 2
 const TIMELINE_STEP_MINUTES = 30
 const CHANNEL_COLUMN_WIDTH = 120
 const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires'
-const GUIDE_API_REGION = 'bklkOggBImCQp3+kUWjJrhVDoBFSFSWjzSVpxbnS96ChubJcYAr+ijxovCNqP1KU/DmaJp5YruVlQn196OMSzfB+es1ldEyx0nj9Xd+Uw0uwJNTQm0t/AtpF09zm9PUy0bdSLRtnYlY='
 const ARGENTINA_TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit',
   minute: '2-digit',
@@ -181,9 +172,6 @@ const ARGENTINA_TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
   timeZone: ARGENTINA_TIME_ZONE,
 })
 const GUIDE_CACHE_KEY_PREFIX = 'guide-cache-v1:'
-const GUIDE_API_COOLDOWN_KEY = 'guide-api-cooldown-until'
-const GUIDE_API_COOLDOWN_MS = 15 * 60 * 1000
-const GUIDE_API_REQUEST_DELAY_MS = 150
 const ROW_LAZY_BUFFER_PX = 240
 const PROGRAM_LAZY_BUFFER_PX = 200
 const DEFAULT_CONTENT_API_URL = 'https://contentapi-ar.cdn.telefonica.com/29/default/es-AR/schedules'
@@ -210,6 +198,7 @@ const CHANNEL_PID_CHUNKS: string[][] = [
 ]
 
 interface GuideDayPayload {
+  movistarSchedule: Record<number, GuideProgram[]>
   schedule: Record<number, GuideProgram[]>
   logoMap: Record<number, string>
 }
@@ -236,6 +225,8 @@ const guideOverlay = document.getElementById('guide-overlay')!
 const guideList = document.getElementById('guide-list')!
 const backPressTooltip = document.getElementById('back-press-tooltip')!
 let liveGuideLogoMap: Record<number, string> = {}
+let liveMovistarSchedule: Record<number, GuideProgram[]> = {}
+let liveSchedule: Record<number, GuideProgram[]> = {}
 
 let lastBackPressTime = -Infinity
 const DOUBLE_BACK_TIMEOUT = 2000
@@ -318,7 +309,7 @@ currentTimeFab.addEventListener('click', () => {
 
 function setChannelLogos(logoMap: Record<number, string>): void {
   channels.forEach((ch) => {
-    const logoUrl = ch.image ?? logoMap[ch.movistarNumber]
+    const logoUrl = ch.image ?? logoMap[ch.number]
     const logoEl = document.getElementById(`grid-logo-${ch.id}`)
     if (logoUrl && logoEl instanceof HTMLElement) {
       logoEl.style.backgroundImage = `url('${logoUrl}')`
@@ -363,41 +354,7 @@ function formatUtcIsoToArgentinaTime(value: string): string | null {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
-function buildGuideApiWindow(dayOffset = 0): { startIso: string, endIso: string } {
-  const now = new Date()
-  const year = now.getUTCFullYear()
-  const month = now.getUTCMonth()
-  const day = now.getUTCDate() + dayOffset
 
-  const startUtc = new Date(Date.UTC(year, month, day, 3, 0, 0, 0))
-  const endUtc = new Date(Date.UTC(year, month, day + 1, 6, 0, 0, 0))
-  return {
-    startIso: startUtc.toISOString(),
-    endIso: endUtc.toISOString(),
-  }
-}
-
-function buildGuideApiUrl(channelId: string, dayOffset = 0): string {
-  const { startIso, endIso } = buildGuideApiWindow(dayOffset)
-  const url = new URL(`https://cdn.bo.flow.com.ar/content/api/v1/Channel/${encodeURIComponent(channelId)}/schedules`)
-  url.searchParams.set('page', '0')
-  url.searchParams.set('size', '1000')
-  url.searchParams.set('filter[end][gt]', startIso)
-  url.searchParams.set('filter[start][lt]', endIso)
-  url.searchParams.set('sort', 'start')
-  url.searchParams.set('images', 'S_DESC')
-  url.searchParams.set('region', GUIDE_API_REGION)
-  return url.toString()
-}
-
-function buildProxiedGuideApiUrls(channelId: string, dayOffset = 0): string[] {
-  const apiUrl = buildGuideApiUrl(channelId, dayOffset)
-  return [
-    `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`,
-    `https://r.jina.ai/http://${apiUrl.replace(/^https?:\/\//, '')}`,
-  ]
-}
 
 function getArgentinaDayRange(dayOffset: number): { start: number; end: number } {
   const now = new Date()
@@ -546,47 +503,54 @@ function writeGuideDayCache(dayKey: string, payload: GuideDayPayload): void {
   }
 }
 
-function mergeGuideScheduleCache(
+function mergeMovistarScheduleCache(
   dayKey: string,
-  scheduleDelta: Record<number, GuideProgram[]>,
+  movistarScheduleDelta: Record<number, GuideProgram[]>,
   logoMapOverride?: Record<number, string>,
 ): GuideDayPayload {
   const cached = readGuideDayCache(dayKey)
   const payload: GuideDayPayload = {
-    schedule: {
-      ...(cached?.schedule ?? {}),
-      ...scheduleDelta,
+    movistarSchedule: {
+      ...(cached?.movistarSchedule ?? {}),
+      ...movistarScheduleDelta,
     },
+    schedule: cached?.schedule ?? {},
     logoMap: logoMapOverride ?? cached?.logoMap ?? {},
   }
   writeGuideDayCache(dayKey, payload)
   return payload
 }
 
+function mergeScheduleCache(
+  dayKey: string,
+  scheduleDelta: Record<number, GuideProgram[]>,
+): GuideDayPayload {
+  const cached = readGuideDayCache(dayKey)
+  const payload: GuideDayPayload = {
+    movistarSchedule: cached?.movistarSchedule ?? {},
+    schedule: {
+      ...(cached?.schedule ?? {}),
+      ...scheduleDelta,
+    },
+    logoMap: cached?.logoMap ?? {},
+  }
+  writeGuideDayCache(dayKey, payload)
+  return payload
+}
+
+function getChannelPrograms(channel: typeof channels[number]): GuideProgram[] {
+  // Check movistarSchedule first if channel has movistarNumber
+  if (channel.movistarNumber && liveMovistarSchedule[channel.movistarNumber]?.length) {
+    return liveMovistarSchedule[channel.movistarNumber]
+  }
+  // Fallback to schedule keyed by internal number
+  return liveSchedule[channel.number] ?? []
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
-}
-
-function getGuideApiCooldownUntil(): number {
-  try {
-    const raw = localStorage.getItem(GUIDE_API_COOLDOWN_KEY)
-    if (!raw) return 0
-    const parsed = Number(raw)
-    return Number.isNaN(parsed) ? 0 : parsed
-  } catch {
-    return 0
-  }
-}
-
-function setGuideApiCooldown(msFromNow: number): void {
-  const until = Date.now() + msFromNow
-  try {
-    localStorage.setItem(GUIDE_API_COOLDOWN_KEY, String(until))
-  } catch {
-    // Ignore storage errors.
-  }
 }
 
 function getCurrentProgram(programs: GuideProgram[], nowMinutes: number): GuideProgram | null {
@@ -872,7 +836,7 @@ function buildChannelNameIndex(): Map<string, number> {
     variants.forEach((name) => {
       const normalized = normalizeChannelName(name)
       if (normalized && !index.has(normalized)) {
-        index.set(normalized, channel.movistarNumber)
+        index.set(normalized, channel.number)
       }
     })
   })
@@ -929,190 +893,42 @@ function hasChannelSchedule(schedule: Record<number, GuideProgram[]>, channelNum
   return (schedule[channelNumber]?.length ?? 0) > 0
 }
 
-async function fetchGuideScheduleFromApiChannel(
-  channelNumber: number,
-  dayOffset = 0,
-): Promise<GuideProgram[] | null> {
-  if (Date.now() < getGuideApiCooldownUntil()) {
-    return null
-  }
 
-  const channelId = CHANNEL_ID_BY_NUMBER[channelNumber]
-  if (!channelId) return null
-
-  for (const source of buildProxiedGuideApiUrls(channelId, dayOffset)) {
-    try {
-      const response = await fetch(source, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          Accept: 'application/json, text/plain, */*',
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        },
-      })
-
-      if (response.status === 429) {
-        setGuideApiCooldown(GUIDE_API_COOLDOWN_MS)
-        return null
-      }
-
-      if (!response.ok) continue
-
-      const text = await response.text()
-      const payload = JSON.parse(text) as GuideApiResponse
-      const programs = (payload.data ?? [])
-        .map((item) => {
-          const start = formatUtcIsoToArgentinaTime(item.start)
-          const end = formatUtcIsoToArgentinaTime(item.end)
-          const title = item.name?.es?.trim().replace(/\s+/g, ' ') ?? ''
-
-          if (!start || !end || !title) return null
-
-          return { start, end, title }
-        })
-        .filter((program): program is GuideProgram => program !== null)
-
-      return programs.length > 0 ? programs : null
-    } catch {
-      // Try next proxy source.
-    }
-  }
-
-  return null
-}
 
 async function ensureMissingChannelSchedules(
   dayOffset: number,
-  schedule: Record<number, GuideProgram[]>,
 ): Promise<void> {
   const dayKey = getGuideUtcDayKey(dayOffset)
-  const missingApiChannels: number[] = []
-  let needsTeleredRefresh = false
 
-  channels.forEach((channel) => {
-    if (hasChannelSchedule(schedule, channel.movistarNumber)) return
-
-    if (TELERED_CHANNEL_NUMBERS.has(channel.movistarNumber)) {
-      needsTeleredRefresh = true
-      return
-    }
-
-    if (Object.prototype.hasOwnProperty.call(CHANNEL_ID_BY_NUMBER, channel.movistarNumber)) {
-      missingApiChannels.push(channel.movistarNumber)
-    }
-  })
-
-  if (needsTeleredRefresh) {
-    const htmlGuide = await fetchGuideScheduleFromHtml(dayOffset)
-    if (Object.keys(htmlGuide.schedule).length > 0) {
-      const merged = mergeGuideScheduleCache(dayKey, htmlGuide.schedule, htmlGuide.logoMap)
-      schedule = merged.schedule
-      liveGuideLogoMap = merged.logoMap
-      setChannelLogos(liveGuideLogoMap)
-      renderEpgGrid(schedule)
-      void loadGuideNowPlaying(schedule)
-      scheduleGuideRefresh(schedule)
-    }
-  }
-
-  if (missingApiChannels.length === 0) return
-
-  for (const channelNumber of missingApiChannels) {
-    const programs = await fetchGuideScheduleFromApiChannel(channelNumber, dayOffset)
-    if (programs && programs.length > 0) {
-      const merged = mergeGuideScheduleCache(dayKey, { [channelNumber]: programs })
-      schedule = merged.schedule
-      renderEpgGrid(schedule)
-      void loadGuideNowPlaying(schedule)
-      scheduleGuideRefresh(schedule)
-    }
-
-    await sleep(GUIDE_API_REQUEST_DELAY_MS)
-  }
-}
-
-async function fetchGuideScheduleFromApi(dayOffset = 0): Promise<Record<number, GuideProgram[]>> {
-  const schedule: Record<number, GuideProgram[]> = {}
-
-  if (Date.now() < getGuideApiCooldownUntil()) {
-    return schedule
-  }
-
-  for (const [channelNumberText, channelId] of Object.entries(CHANNEL_ID_BY_NUMBER)) {
-    let fetchedForChannel = false
-
-    for (const source of buildProxiedGuideApiUrls(channelId, dayOffset)) {
+  // Try tvpassport for OTA channels that don't have schedules
+  for (const [channelNumberStr, baseUrl] of Object.entries(TVPASSPORT_URLS)) {
+    const channelNumber = Number(channelNumberStr)
+    if (!hasChannelSchedule(liveSchedule, channelNumber)) {
       try {
-        const response = await fetch(source, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            Accept: 'application/json, text/plain, */*',
-            'Cache-Control': 'no-cache',
-            Pragma: 'no-cache',
-          },
-        })
-
-        if (response.status === 429) {
-          setGuideApiCooldown(GUIDE_API_COOLDOWN_MS)
-          return schedule
+        const programs = await fetchTvPassportGuide(baseUrl, dayOffset)
+        if (programs && programs.length > 0) {
+          const merged = mergeScheduleCache(dayKey, { [channelNumber]: programs })
+          liveSchedule = merged.schedule
+          renderEpgGrid()
+          void loadGuideNowPlaying()
+          scheduleGuideRefresh()
         }
-
-        if (!response.ok) continue
-
-        const text = await response.text()
-        const payload = JSON.parse(text) as GuideApiResponse
-        const programs = (payload.data ?? [])
-          .map((item) => {
-            const start = formatUtcIsoToArgentinaTime(item.start)
-            const end = formatUtcIsoToArgentinaTime(item.end)
-            const title = item.name?.es?.trim().replace(/\s+/g, ' ') ?? ''
-
-            if (!start || !end || !title) return null
-
-            return { start, end, title }
-          })
-          .filter((program): program is GuideProgram => program !== null)
-
-        if (programs.length > 0) {
-          schedule[Number(channelNumberText)] = programs
-          fetchedForChannel = true
-          break
-        }
-      } catch {
-        // Try next proxy source.
+      } catch (e) {
+        console.error(`[ensureMissingChannelSchedules] tvpassport error for channel ${channelNumber}:`, e)
       }
     }
-
-    if (!fetchedForChannel) {
-      continue
-    }
-
-    await sleep(GUIDE_API_REQUEST_DELAY_MS)
   }
-
-  return schedule
 }
 
-async function fetchGuideScheduleByDay(
-  dayOffset = 0,
-  options?: { onApiMerge?: (schedule: Record<number, GuideProgram[]>) => void },
-): Promise<GuideDayPayload> {
+
+
+async function fetchGuideScheduleByDay(dayOffset = 0): Promise<GuideDayPayload> {
   const dayKey = getGuideUtcDayKey(dayOffset)
   const htmlGuide = await fetchGuideScheduleFromHtml(dayOffset)
-  const payload = mergeGuideScheduleCache(dayKey, htmlGuide.schedule, htmlGuide.logoMap)
-
-  void fetchGuideScheduleFromApi(dayOffset).then((apiSchedule) => {
-    if (Object.keys(apiSchedule).length === 0) return
-    const merged = mergeGuideScheduleCache(dayKey, apiSchedule)
-    options?.onApiMerge?.(merged.schedule)
-  })
-
-  return payload
+  return mergeMovistarScheduleCache(dayKey, htmlGuide.schedule, htmlGuide.logoMap)
 }
 
-async function fetchGuideSchedule(): Promise<Record<number, GuideProgram[]>> {
+async function fetchGuideSchedule(): Promise<void> {
   const todayKey = getGuideUtcDayKey(0)
   const nextDayKey = getGuideUtcDayKey(1)
 
@@ -1120,40 +936,23 @@ async function fetchGuideSchedule(): Promise<Record<number, GuideProgram[]>> {
   let todayPayload: GuideDayPayload
 
   if (!cachedToday) {
-    todayPayload = await fetchGuideScheduleByDay(0, {
-      onApiMerge: (schedule) => {
-        renderEpgGrid(schedule)
-        void loadGuideNowPlaying(schedule)
-        scheduleGuideRefresh(schedule)
-      },
-    })
+    todayPayload = await fetchGuideScheduleByDay(0)
   } else {
-    todayPayload = { schedule: cachedToday.schedule, logoMap: cachedToday.logoMap }
-    void fetchGuideScheduleByDay(0, {
-      onApiMerge: (schedule) => {
-        renderEpgGrid(schedule)
-        void loadGuideNowPlaying(schedule)
-        scheduleGuideRefresh(schedule)
-      },
-    })
-
-    if (!readGuideDayCache(nextDayKey)) {
-      void fetchGuideScheduleByDay(1)
-    }
+    todayPayload = cachedToday
   }
 
   liveGuideLogoMap = todayPayload.logoMap
+  liveMovistarSchedule = todayPayload.movistarSchedule
+  liveSchedule = todayPayload.schedule
   setChannelLogos(liveGuideLogoMap)
 
-  void ensureMissingChannelSchedules(0, { ...todayPayload.schedule })
+  // Fetch next day if not cached
+  if (!readGuideDayCache(nextDayKey)) {
+    void fetchGuideScheduleByDay(1)
+  }
 
-  return todayPayload.schedule
-}
-
-function getCachedScheduleForDay(dayOffset: number): Record<number, GuideProgram[]> | null {
-  const dayKey = getGuideUtcDayKey(dayOffset)
-  const cached = readGuideDayCache(dayKey)
-  return cached?.schedule ?? null
+  // Ensure missing OTA channels have schedules from TV Passport
+  void ensureMissingChannelSchedules(0)
 }
 
 async function fetchGuideScheduleFromHtml(dayOffset = 0): Promise<{ schedule: Record<number, GuideProgram[]>, logoMap: Record<number, string> }> {
@@ -1205,28 +1004,29 @@ async function fetchGuideScheduleFromHtml(dayOffset = 0): Promise<{ schedule: Re
   return { schedule, logoMap: {} }
 }
 
-async function loadGuideNowPlaying(scheduleOverride?: Record<number, GuideProgram[]>): Promise<void> {
-  const cachedSchedule = scheduleOverride ?? getCachedScheduleForDay(0) ?? {}
+async function loadGuideNowPlaying(): Promise<void> {
   const nowMinutes = getArgentinaNowMinutes()
 
   channels.forEach((ch, i) => {
     const nowElement = guideItems[i]?.querySelector('.guide-item-now') as HTMLElement | null
     if (!nowElement) return
 
-    const currentProgram = getCurrentProgram(cachedSchedule[ch.movistarNumber] ?? [], nowMinutes)
+    const programs = getChannelPrograms(ch)
+    const currentProgram = getCurrentProgram(programs, nowMinutes)
     nowElement.textContent = currentProgram
       ? `${currentProgram.start}-${currentProgram.end} ${currentProgram.title}`
       : 'Sin programa en vivo'
   })
 
-  if (!scheduleOverride) {
-    void fetchGuideSchedule().then((schedule) => {
+  if (!liveMovistarSchedule || Object.keys(liveMovistarSchedule).length === 0) {
+    void fetchGuideSchedule().then(() => {
       const refreshedMinutes = getArgentinaNowMinutes()
       channels.forEach((ch, i) => {
         const nowElement = guideItems[i]?.querySelector('.guide-item-now') as HTMLElement | null
         if (!nowElement) return
 
-        const currentProgram = getCurrentProgram(schedule[ch.movistarNumber] ?? [], refreshedMinutes)
+        const programs = getChannelPrograms(ch)
+        const currentProgram = getCurrentProgram(programs, refreshedMinutes)
         nowElement.textContent = currentProgram
           ? `${currentProgram.start}-${currentProgram.end} ${currentProgram.title}`
           : 'Sin programa en vivo'
@@ -1437,7 +1237,7 @@ function renderVisibleCellsForViewport(): void {
   })
 }
 
-function renderEpgGrid(schedule: Record<number, GuideProgram[]>): void {
+function renderEpgGrid(): void {
   const nowMinutes = getArgentinaNowMinutes()
   const totalWidth = GRID_WIDTH_MINUTES * GRID_PIXELS_PER_MINUTE
 
@@ -1476,9 +1276,10 @@ function renderEpgGrid(schedule: Record<number, GuideProgram[]>): void {
     lane.className = 'channel-programs'
     lane.style.width = `${totalWidth}px`
 
-    const normalizedPrograms = normalizeProgramsInSourceOrder(schedule[channel.movistarNumber] ?? [])
+    const channelPrograms = getChannelPrograms(channel)
+    const normalizedPrograms = normalizeProgramsInSourceOrder(channelPrograms)
 
-    const currentProgram = getCurrentProgram(schedule[channel.movistarNumber] ?? [], nowMinutes)
+    const currentProgram = getCurrentProgram(channelPrograms, nowMinutes)
     const cells: RenderableProgramCell[] = []
 
     normalizedPrograms.forEach((program, programIndex) => {
@@ -1549,12 +1350,12 @@ function renderEpgGrid(schedule: Record<number, GuideProgram[]>): void {
 }
 
 void (async () => {
-  renderEpgGrid({})
+  renderEpgGrid()
 
-  const schedule = await fetchGuideSchedule()
-  renderEpgGrid(schedule)
-  await loadGuideNowPlaying(schedule)
-  scheduleGuideRefresh(schedule)
+  await fetchGuideSchedule()
+  renderEpgGrid()
+  await loadGuideNowPlaying()
+  scheduleGuideRefresh()
 })()
 
 async function openChannel(index: number): Promise<void> {
@@ -1568,7 +1369,7 @@ async function openChannel(index: number): Promise<void> {
   overlayChannelNumber.textContent = `${ch.number}`
   overlayChannelName.textContent = ch.name
 
-  const logoUrl = ch.image ?? liveGuideLogoMap[ch.movistarNumber]
+  const logoUrl = ch.image ?? liveGuideLogoMap[ch.number]
   loadingLogo.style.backgroundImage = logoUrl ? `url('${logoUrl}')` : ''
   loadingNumber.textContent = `Canal ${ch.number}`
   loadingName.textContent = ch.name
@@ -1622,12 +1423,7 @@ function openGuide(): void {
   guideFocusIndex = currentChannelIndex
   guideOverlay.hidden = false
   applyGuideFocus()
-  const cachedSchedule = getCachedScheduleForDay(0)
-  if (cachedSchedule) {
-    void loadGuideNowPlaying(cachedSchedule)
-  } else {
-    void loadGuideNowPlaying()
-  }
+  void loadGuideNowPlaying()
   if (overlayTimer) clearTimeout(overlayTimer)
   hideOverlay()
 }
@@ -1646,7 +1442,7 @@ function applyGuideFocus(): void {
 
 let guideRefreshTimeout: ReturnType<typeof setTimeout> | null = null
 
-function scheduleGuideRefresh(scheduleByChannelNumber: Record<number, GuideProgram[]>): void {
+function scheduleGuideRefresh(): void {
   if (guideRefreshTimeout) {
     clearTimeout(guideRefreshTimeout)
   }
@@ -1655,7 +1451,8 @@ function scheduleGuideRefresh(scheduleByChannelNumber: Record<number, GuideProgr
   let minMinutesUntilEnd: number | null = null
 
   channels.forEach((channel) => {
-    const currentProgram = getCurrentProgram(scheduleByChannelNumber[channel.movistarNumber] ?? [], nowMinutes)
+    const programs = getChannelPrograms(channel)
+    const currentProgram = getCurrentProgram(programs, nowMinutes)
     if (!currentProgram) return
 
     const endMinutes = parseHourToMinutes(currentProgram.end)
@@ -1677,10 +1474,10 @@ function scheduleGuideRefresh(scheduleByChannelNumber: Record<number, GuideProgr
 }
 
 async function refreshGuideNowPlaying(): Promise<void> {
-  const schedule = await fetchGuideSchedule()
-  renderEpgGrid(schedule)
-  await loadGuideNowPlaying(schedule)
-  scheduleGuideRefresh(schedule)
+  await fetchGuideSchedule()
+  renderEpgGrid()
+  await loadGuideNowPlaying()
+  scheduleGuideRefresh()
 }
 
 document.addEventListener('keydown', (e: KeyboardEvent) => {

@@ -17,6 +17,13 @@ declare namespace shaka {
     load(manifestUri: string): Promise<void>;
     destroy(): Promise<void>;
     addEventListener(type: string, listener: (event: PlayerEvent) => void): void;
+    getNetworkingEngine(): shaka.net.NetworkingEngine;
+  }
+
+  namespace net {
+    class NetworkingEngine {
+      registerRequestFilter(filter: (type: number, request: any) => void): void;
+    }
   }
 
   interface PlayerEvent extends Event {

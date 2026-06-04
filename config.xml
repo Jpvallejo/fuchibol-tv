@@ -3,7 +3,7 @@
   xmlns="http://www.w3.org/ns/widgets"
   xmlns:tizen="http://tizen.org/ns/widgets"
   id="http://example.com/argentina-tv"
-  version="1.0.4"
+  version="1.0.6"
   viewmodes="fullscreen">
   <tizen:application id="123456789.argentinatv" package="123456789" required_version="2.3.0"/>
   <content src="index.html"/>
