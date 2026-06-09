@@ -85,14 +85,12 @@ jobs:
         run: |
           CURRENT_VERSION="${{ steps.version.outputs.current }}"
           NEW_VERSION="${{ steps.version.outputs.new }}"
-          
-          # Update versionName in build.gradle
-          sed -i 's/versionName "\'"$CURRENT_VERSION"\'"/versionName "\'"$NEW_VERSION"\'"/g' android/app/build.gradle
-          
-          # Increment versionCode
+
+          sed -i "s/versionName \"$CURRENT_VERSION\"/versionName \"$NEW_VERSION\"/" android/app/build.gradle
+
           CURRENT_CODE=$(grep -oP 'versionCode \K\d+' android/app/build.gradle | head -1)
           NEW_CODE=$((CURRENT_CODE + 1))
-          sed -i 's/versionCode '"$CURRENT_CODE"'/versionCode '"$NEW_CODE"'/g' android/app/build.gradle
+          sed -i "s/versionCode $CURRENT_CODE/versionCode $NEW_CODE/" android/app/build.gradle
 
       - name: Build web app
         run: npm run build
@@ -110,7 +108,7 @@ jobs:
 
       - name: Commit version changes
         run: |
-          git add package.json android/app/build.gradle
+          git add package.json package-lock.json android/app/build.gradle
           git commit -m "chore: bump version to ${{ steps.version.outputs.new }} [skip ci]"
           git push
 
