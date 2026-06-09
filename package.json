@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "prepare": "npm run build && npx cap copy android && cd android && ./gradlew assembleDebug && cd ..",
+    "build:android": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug && cd ..",
     "set-app-icon": "node scripts/set-app-icon.js"
   },
   "bin": {
