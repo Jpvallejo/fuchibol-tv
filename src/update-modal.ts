@@ -52,8 +52,34 @@ export function showUpdateModal(updateInfo: UpdateCheckResult): void {
   dismissButton.className = 'update-modal-button dismiss-button'
   dismissButton.textContent = 'Más tarde'
 
+  const focusableButtons = [updateButton, dismissButton]
+  let focusedButtonIndex = 0
+
+  function updateModalFocus(): void {
+    focusableButtons.forEach((btn, i) => {
+      btn.classList.toggle('focused', i === focusedButtonIndex)
+    })
+    focusableButtons[focusedButtonIndex].focus()
+  }
+
+  function handleModalKeydown(e: KeyboardEvent): void {
+    e.stopPropagation()
+    e.preventDefault()
+
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      focusedButtonIndex = Math.max(0, focusedButtonIndex - 1)
+      updateModalFocus()
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      focusedButtonIndex = Math.min(focusableButtons.length - 1, focusedButtonIndex + 1)
+      updateModalFocus()
+    } else if (e.key === 'Enter') {
+      focusableButtons[focusedButtonIndex].click()
+    } else if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
+      removeModal()
+    }
+  }
+
   updateButton.addEventListener('click', () => {
-    // Open download URL
     window.open(updateInfo.downloadUrl, '_blank')
     removeModal()
   })
@@ -67,6 +93,7 @@ export function showUpdateModal(updateInfo: UpdateCheckResult): void {
   })
 
   function removeModal(): void {
+    document.removeEventListener('keydown', handleModalKeydown, { capture: true })
     modal.remove()
   }
 
@@ -83,4 +110,7 @@ export function showUpdateModal(updateInfo: UpdateCheckResult): void {
 
   modal.appendChild(modalBox)
   document.body.appendChild(modal)
+
+  document.addEventListener('keydown', handleModalKeydown, { capture: true })
+  updateModalFocus()
 }

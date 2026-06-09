@@ -38,18 +38,10 @@ function compareVersions(version1: string, version2: string): number {
   return 0
 }
 
-/**
- * Gets the current app version from package.json
- */
-async function getCurrentVersion(): Promise<string> {
-  try {
-    const response = await fetch('/package.json')
-    const pkg = await response.json()
-    return pkg.version || '0.0.0'
-  } catch (e) {
-    console.warn('Failed to fetch package.json:', e)
-    return '0.0.0'
-  }
+declare const __APP_VERSION__: string
+
+function getCurrentVersion(): string {
+  return __APP_VERSION__ || '0.0.0'
 }
 
 /**
@@ -141,10 +133,8 @@ export async function checkForUpdates(): Promise<UpdateCheckResult | null> {
   }
 
   try {
-    const [currentVersion, latestRelease] = await Promise.all([
-      getCurrentVersion(),
-      fetchLatestRelease(),
-    ])
+    const currentVersion = getCurrentVersion()
+    const latestRelease = await fetchLatestRelease()
 
     if (!latestRelease) {
       return null
