@@ -97,8 +97,8 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      - name: Setup Capacitor for Android
-        run: npx cap update android && npx cap copy android
+      - name: Setup Capacitor
+        run: npx cap update && npx cap copy android
 
       - name: Build Android APK
         run: cd android && ./gradlew assembleDebug && cd ..
