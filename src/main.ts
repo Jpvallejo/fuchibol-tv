@@ -10,6 +10,7 @@ const TVPASSPORT_URLS: Record<number, string> = {
   502: 'https://www.tvpassport.com/tv-listings/stations/cbs-kcci-des-moines/1248',
   503: 'https://www.tvpassport.com/tv-listings/stations/cbs-kwtv-oklahoma-city-ok/1504',
   504: 'https://www.tvpassport.com/tv-listings/stations/abc-wcvb-boston-ma-hd/3661',
+  505: 'https://www.tvpassport.com/tv-listings/stations/abc-ktnv-las-vegas-nv/2383',
 }
 
 // Platform abstraction for Android (Capacitor) and Tizen

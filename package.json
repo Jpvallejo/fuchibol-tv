@@ -1,12 +1,16 @@
 {
   "name": "argentina-tv",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "prepare": "npm run build && npx cap copy android && cd android && ./gradlew assembleDebug && cd .."
+    "prepare": "npm run build && npx cap copy android && cd android && ./gradlew assembleDebug && cd ..",
+    "set-app-icon": "node scripts/set-app-icon.js"
+  },
+  "bin": {
+    "set-app-icon": "scripts/set-app-icon.js"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
