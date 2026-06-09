@@ -120,19 +120,19 @@ export async function getLa14Url(pageUrl: string): Promise<string | null> {
 }
 
 // CLI usage: npx ts-node src/la14-url-extractor.ts <URL>
-if (typeof process !== 'undefined' && process.argv && import.meta.url === `file://${process.argv[1]}`) {
-  const url = process.argv[2]
-  if (!url) {
-    console.error('Usage: npx ts-node src/la14-url-extractor.ts <URL>')
-    process.exit(1)
-  }
+// if (typeof process !== 'undefined' && process.argv && import.meta.url === `file://${process.argv[1]}`) {
+//   const url = process.argv[2]
+//   if (!url) {
+//     console.error('Usage: npx ts-node src/la14-url-extractor.ts <URL>')
+//     process.exit(1)
+//   }
 
-  getLa14Url(url).then((playbackUrl) => {
-    if (playbackUrl) {
-      console.log(playbackUrl)
-    } else {
-      console.error('Could not extract playbackURL')
-      process.exit(1)
-    }
-  })
-}
+//   getLa14Url(url).then((playbackUrl) => {
+//     if (playbackUrl) {
+//       console.log(playbackUrl)
+//     } else {
+//       console.error('Could not extract playbackURL')
+//       process.exit(1)
+//     }
+//   })
+// }
