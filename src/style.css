@@ -899,3 +899,152 @@ button {
     font-size: 1.4rem;
   }
 }
+
+/* ===== Update Modal ===== */
+.update-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.update-modal-box {
+  position: relative;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.update-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 28px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.update-modal-close:hover {
+  background: var(--panel-soft);
+  color: var(--text);
+}
+
+.update-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--accent-strong);
+}
+
+.update-modal-content {
+  margin-bottom: 24px;
+}
+
+.update-modal-version-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid var(--panel-soft);
+}
+
+.version-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.version-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.version-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--text);
+}
+
+.version-number.version-new {
+  color: var(--accent);
+}
+
+.version-arrow {
+  font-size: 1.5rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.update-modal-message {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.update-modal-buttons {
+  display: flex;
+  gap: 12px;
+  flex-direction: row-reverse;
+}
+
+.update-modal-button {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.update-button {
+  background: var(--accent-strong);
+  color: #000;
+}
+
+.update-button:hover {
+  background: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(55, 201, 255, 0.3);
+}
+
+.update-button:active {
+  transform: translateY(0);
+}
+
+.dismiss-button {
+  background: var(--panel-soft);
+  color: var(--text);
+}
+
+.dismiss-button:hover {
+  background: var(--line-strong);
+}
+}

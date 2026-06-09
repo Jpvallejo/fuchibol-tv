@@ -2,6 +2,8 @@ import { channels } from './channels'
 import { ShakaPlayer } from './player'
 import fetchTvPassportGuide from './tvpassport-guide'
 import { GridNavigation, type NavigationCell } from './navigation'
+import { checkForUpdates } from './update-checker'
+import { showUpdateModal } from './update-modal'
 
 // Tvpassport guide URLs for OTA channels
 const TVPASSPORT_URLS: Record<number, string> = {
@@ -1351,6 +1353,16 @@ function renderEpgGrid(): void {
 }
 
 void (async () => {
+  // Check for app updates
+  try {
+    const updateInfo = await checkForUpdates()
+    if (updateInfo?.hasUpdate) {
+      showUpdateModal(updateInfo)
+    }
+  } catch (e) {
+    console.warn('Update check error:', e)
+  }
+
   renderEpgGrid()
 
   await fetchGuideSchedule()

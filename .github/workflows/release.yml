@@ -1,0 +1,92 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - full-tv-app
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get current version
+        id: version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          
+          # Parse version, increment patch
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version in package.json
+        run: npm version ${{ steps.version.outputs.new }} --no-git-tag-version
+
+      - name: Update version in build.gradle
+        run: |
+          CURRENT_VERSION="${{ steps.version.outputs.current }}"
+          NEW_VERSION="${{ steps.version.outputs.new }}"
+          
+          # Update versionName in build.gradle
+          sed -i 's/versionName "\'"$CURRENT_VERSION"\'"/versionName "\'"$NEW_VERSION"\'"/g' android/app/build.gradle
+          
+          # Increment versionCode
+          CURRENT_CODE=$(grep -oP 'versionCode \K\d+' android/app/build.gradle | head -1)
+          NEW_CODE=$((CURRENT_CODE + 1))
+          sed -i 's/versionCode '"$CURRENT_CODE"'/versionCode '"$NEW_CODE"'/g' android/app/build.gradle
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Build Android APK
+        run: cd android && ./gradlew assembleDebug && cd ..
+
+      - name: Configure Git  
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Commit version changes
+        run: |
+          git add package.json android/app/build.gradle
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new }} [skip ci]"
+          git push
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.new }}
+          name: Release ${{ steps.version.outputs.new }}
+          files: android/app/build/outputs/apk/debug/argentina-tv.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
