@@ -44,6 +44,7 @@ function getCurrentVersion(): string {
   return __APP_VERSION__ || '0.0.0'
 }
 
+
 /**
  * Fetches latest release information from GitHub API
  */
