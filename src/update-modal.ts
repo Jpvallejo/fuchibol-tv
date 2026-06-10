@@ -80,8 +80,23 @@ export function showUpdateModal(updateInfo: UpdateCheckResult): void {
   }
 
   updateButton.addEventListener('click', () => {
-    window.open(updateInfo.downloadUrl, '_blank')
-    removeModal()
+    const cap = (window as any).Capacitor
+    if (cap?.Plugins?.ApkInstaller?.downloadAndInstall) {
+      updateButton.textContent = 'Descargando...'
+      updateButton.disabled = true
+      dismissButton.disabled = true
+      void cap.Plugins.ApkInstaller.downloadAndInstall({ url: updateInfo.downloadUrl })
+        .then(() => {
+          updateButton.textContent = 'Instalando...'
+          setTimeout(removeModal, 1500)
+        })
+        .catch(() => {
+          removeModal()
+        })
+    } else {
+      window.open(updateInfo.downloadUrl, '_blank')
+      removeModal()
+    }
   })
 
   dismissButton.addEventListener('click', () => {

@@ -6,7 +6,20 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://www.telered.com.ar/img/logos_ch/logos-SANTAMARIA-2705.png\")",
       "Bash(curl -v --tlsv1.2 \"https://www.telered.com.ar/img/logos_ch/logos-SANTAMARIA-2705.png\")",
       "Bash(sips -g pixelWidth -g pixelHeight /Users/jpvallejo/Documents/repos/fuchibol-ttv/fuchibol-tv/public/tv-argentina-logo.png)",
-      "Bash(xargs cat -n)"
+      "Bash(xargs cat -n)",
+      "Bash(java -version)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Bash(brew install *)",
+      "Bash(gh auth *)",
+      "Bash(openssl rand *)",
+      "Bash(keytool -genkey -v -keystore /tmp/argentina-tv-release.keystore -alias argentina-tv -keyalg RSA -keysize 2048 -validity 10000 -storepass cD5xW9BKhNtbdWroFlZ8eYcqA3Mektq -keypass wPRNbFnOy6BDeDQMTzD8xkljHHfby4Fh -dname 'CN=Argentina TV, OU=App, O=ArgentinaTV, L=Buenos Aires, ST=Buenos Aires, C=AR')",
+      "Bash(gh secret *)",
+      "Bash(cp /tmp/argentina-tv-release.keystore ~/argentina-tv-release.keystore *)",
+      "Bash(xargs ls -la)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp"
     ]
   }
 }

@@ -68,10 +68,18 @@ jobs:
       - name: Setup Capacitor
         run: npx cap sync android
 
-      - name: Build Android APK
-        run: cd android && ./gradlew assembleDebug && cd ..
+      - name: Decode Keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
 
-      - name: Configure Git  
+      - name: Build Android APK
+        run: cd android && ./gradlew assembleRelease && cd ..
+        env:
+          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Configure Git
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -87,7 +95,7 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.new }}
           name: Release ${{ steps.version.outputs.new }}
-          files: android/app/build/outputs/apk/debug/argentina-tv.apk
+          files: android/app/build/outputs/apk/release/argentina-tv.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
