@@ -260,6 +260,7 @@ const CHANNEL_IMAGE_BY_NUMBER: Record<number, string | null> = {
 // If a channel number is not present in the map, the `image` will be `null`.
 
 type ChannelCategory =
+  | "MUNDIAL"
   | "GENERAL"
   | "SPORTS"
   | "USA"
@@ -399,8 +400,124 @@ function createM3u8Channel(config: {
   };
 }
 
-export { createLa14Channel, createM3u8Channel };
+async function decryptStreamUrl(encryptedUrl: string): Promise<string> {
+  const sKey = "8paW@#1UgOw4=A8iT*5we";
+
+  const keyBytes = new TextEncoder()
+    .encode(sKey)
+    .slice(0, 16);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"]
+  );
+
+  const binary = atob(encryptedUrl);
+
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  const iv = bytes.slice(0, 12);
+  const ciphertext = bytes.slice(12);
+
+  const decrypted = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv
+    },
+    cryptoKey,
+    ciphertext
+  );
+
+  return new TextDecoder().decode(decrypted);
+}
+
+async function getMundialChannel(id: string): Promise<string> {
+  const response = await fetch("https://viznf.gdgdfhbdfidsf.xyz/fetch", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    },
+    body: JSON.stringify({ id }),
+  });
+
+  return decryptStreamUrl((await response.json()).url);
+}
+
+export { createLa14Channel, createM3u8Channel, getMundialChannel };
 const channelsRaw: Channel[] = [
+  {
+    id: "fox4k-usa",
+    name: "FOX 4K",
+    shortName: "FOX 4K",
+    color: "#fbbf24",
+    movistarNumber: 0,
+    number: 0,
+    image: null,
+    keyId: "",
+    key: "",
+    getManifestUrl: () => getMundialChannel("fox4k-usa"),
+    category: "MUNDIAL",
+  },
+  {
+    id: "telemundo-usa",
+    name: "Telemundo USA",
+    shortName: "Telemundo",
+    color: "#fbbf24",
+    movistarNumber: 0,
+    number: 0,
+    image: null,
+    keyId: "",
+    key: "",
+    getManifestUrl: () => getMundialChannel("telemundo-usa"),
+    category: "MUNDIAL",
+  },
+  {
+    id: "fusballtvuhd-de",
+    name: "Fussball TV UHD",
+    shortName: "Fussball UHD",
+    color: "#22c55e",
+    movistarNumber: 0,
+    number: 0,
+    image: null,
+    keyId: "",
+    key: "",
+    getManifestUrl: () => getMundialChannel("fusballtvuhd-de"),
+    category: "MUNDIAL",
+  },
+  {
+    id: "bbc-4k",
+    name: "BBC 4K",
+    shortName: "BBC 4K",
+    color: "#ef4444",
+    movistarNumber: 0,
+    number: 0,
+    image: null,
+    keyId: "",
+    key: "",
+    getManifestUrl: () => getMundialChannel("bbc-4k"),
+    category: "MUNDIAL",
+  },
+  {
+    id: "dsports-ar",
+    name: "DSports",
+    shortName: "DSports",
+    color: "#3b82f6",
+    movistarNumber: 0,
+    number: 0,
+    image: null,
+    keyId: "",
+    key: "",
+    getManifestUrl: () => getMundialChannel("dsports-ar"),
+    category: "MUNDIAL",
+  },
   createChannel({
     id: "america-tv",
     name: "America TV",
@@ -3438,6 +3555,7 @@ const channelsRaw: Channel[] = [
 
 
 const categoryOrder = [
+  "MUNDIAL",
   "GENERAL",
   "SPORTS",
   "USA",
