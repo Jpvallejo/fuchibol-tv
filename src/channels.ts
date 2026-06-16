@@ -438,7 +438,7 @@ async function decryptStreamUrl(encryptedUrl: string): Promise<string> {
   return new TextDecoder().decode(decrypted);
 }
 
-const MUNDIAL_FETCH_URL = "https://viznf.gdgdfhbdfidsf.xyz/fetch";
+const MUNDIAL_FETCH_URL = "https://viled.hux-giants.shop/fetch";
 
 function getMundialFetchUrl(): string {
   const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
