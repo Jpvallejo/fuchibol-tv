@@ -438,12 +438,22 @@ async function decryptStreamUrl(encryptedUrl: string): Promise<string> {
   return new TextDecoder().decode(decrypted);
 }
 
+const MUNDIAL_FETCH_URL = "https://viznf.gdgdfhbdfidsf.xyz/fetch";
+
+function getMundialFetchUrl(): string {
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  if (isNative) return MUNDIAL_FETCH_URL;
+  return `https://corsproxy.io/?url=${encodeURIComponent(MUNDIAL_FETCH_URL)}`;
+}
+
 async function getMundialChannel(id: string): Promise<string> {
-  const response = await fetch("https://viznf.gdgdfhbdfidsf.xyz/fetch", {
+  const response = await fetch(getMundialFetchUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "Referer": `https://junkieembeds.pages.dev/embed/${id}`,
+      "Origin": "https://junkieembeds.pages.dev",
     },
     body: JSON.stringify({ id }),
   });

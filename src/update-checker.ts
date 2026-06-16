@@ -95,12 +95,12 @@ function getCachedResult(): UpdateCheckResult | null {
     const data: CacheData = JSON.parse(cached)
     const age = Date.now() - data.timestamp
 
-    if (age < CHECK_INTERVAL_MS) {
-      return data.result
+    if (data.result.currentVersion !== getCurrentVersion() || age >= CHECK_INTERVAL_MS) {
+      localStorage.removeItem(STORAGE_KEY)
+      return null
     }
 
-    localStorage.removeItem(STORAGE_KEY)
-    return null
+    return data.result
   } catch (e) {
     console.warn('Failed to read update cache:', e)
     return null
