@@ -42,18 +42,22 @@ export class ShakaPlayer {
 
       console.log(`[Player] Loading channel: ${channel.id}, manifestUrl: ${manifestUrl}, isHls: ${isHls}`)
 
+      const hlsHeaders = channel.category === 'MUNDIAL'
+        ? { Referer: 'https://junkieembeds.pages.dev/', Origin: 'https://junkieembeds.pages.dev' }
+        : undefined
+
       // Use hls.js for HLS/m3u8 streams
       if (isHls || manifestUrl.toLowerCase().includes('.m3u8')) {
         console.log(`[Player] Using hls.js for m3u8 playback`)
         try {
-          await this.loadWithHls(manifestUrl)
+          await this.loadWithHls(manifestUrl, hlsHeaders)
         } catch (hlsErr) {
           console.warn(`[Player] HLS failed for primary URL: ${hlsErr}`)
           // Try fallbackM3u8Url if provided on the channel
           const fb = (channel as any).fallbackM3u8Url as string | undefined
           if (fb) {
             console.log(`[Player] Attempting HLS fallback URL: ${fb}`)
-            await this.loadWithHls(fb)
+            await this.loadWithHls(fb, hlsHeaders)
           } else {
             throw hlsErr
           }
@@ -84,15 +88,18 @@ export class ShakaPlayer {
     }
   }
 
-  private async loadWithHls(manifestUrl: string): Promise<void> {
+  private async loadWithHls(manifestUrl: string, headers?: Record<string, string>): Promise<void> {
     console.log(`[Player] loadWithHls: ${manifestUrl}`)
-    
+
     if (HLS.isSupported()) {
       this.hls = new HLS({
         debug: false,
         lowLatencyMode: false,
         xhrSetup: (xhr) => {
           xhr.withCredentials = false
+          if (headers) {
+            Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value))
+          }
         },
       })
       this.hls.loadSource(manifestUrl)

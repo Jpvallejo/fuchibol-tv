@@ -16,7 +16,9 @@
       "Bash(keytool -genkey -v -keystore /tmp/argentina-tv-release.keystore -alias argentina-tv -keyalg RSA -keysize 2048 -validity 10000 -storepass cD5xW9BKhNtbdWroFlZ8eYcqA3Mektq -keypass wPRNbFnOy6BDeDQMTzD8xkljHHfby4Fh -dname 'CN=Argentina TV, OU=App, O=ArgentinaTV, L=Buenos Aires, ST=Buenos Aires, C=AR')",
       "Bash(gh secret *)",
       "Bash(cp /tmp/argentina-tv-release.keystore ~/argentina-tv-release.keystore *)",
-      "Bash(xargs ls -la)"
+      "Bash(xargs ls -la)",
+      "Bash(ls /Users/jpvallejo/Documents/repos/fuchibol/app/api/proxy-hls/)",
+      "Read(//Users/jpvallejo/Documents/repos/fuchibol/app/api/proxy-hls/**)"
     ],
     "additionalDirectories": [
       "/private/tmp"
