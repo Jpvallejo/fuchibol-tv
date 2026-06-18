@@ -402,43 +402,43 @@ function createM3u8Channel(config: {
   };
 }
 
-async function decryptStreamUrl(encryptedUrl: string): Promise<string> {
-  const sKey = "8paW@#1UgOw4=A8iT*5we";
+// async function decryptStreamUrl(encryptedUrl: string): Promise<string> {
+//   const sKey = "8paW@#1UgOw4=A8iT*5we";
 
-  const keyBytes = new TextEncoder()
-    .encode(sKey)
-    .slice(0, 16);
+//   const keyBytes = new TextEncoder()
+//     .encode(sKey)
+//     .slice(0, 16);
 
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    keyBytes,
-    { name: "AES-GCM" },
-    false,
-    ["decrypt"]
-  );
+//   const cryptoKey = await crypto.subtle.importKey(
+//     "raw",
+//     keyBytes,
+//     { name: "AES-GCM" },
+//     false,
+//     ["decrypt"]
+//   );
 
-  const binary = atob(encryptedUrl);
+//   const binary = atob(encryptedUrl);
 
-  const bytes = new Uint8Array(binary.length);
+//   const bytes = new Uint8Array(binary.length);
 
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
+//   for (let i = 0; i < binary.length; i++) {
+//     bytes[i] = binary.charCodeAt(i);
+//   }
 
-  const iv = bytes.slice(0, 12);
-  const ciphertext = bytes.slice(12);
+//   const iv = bytes.slice(0, 12);
+//   const ciphertext = bytes.slice(12);
 
-  const decrypted = await crypto.subtle.decrypt(
-    {
-      name: "AES-GCM",
-      iv
-    },
-    cryptoKey,
-    ciphertext
-  );
+//   const decrypted = await crypto.subtle.decrypt(
+//     {
+//       name: "AES-GCM",
+//       iv
+//     },
+//     cryptoKey,
+//     ciphertext
+//   );
 
-  return new TextDecoder().decode(decrypted);
-}
+//   return new TextDecoder().decode(decrypted);
+// }
 
 // const MUNDIAL_FETCH_URL = "https://vix.vinxvodufon.uk/fetch";
 const MUNDIAL_PROXY_URL = "https://fuchibol.vallejo.ar/api/get-mundial-channel";
