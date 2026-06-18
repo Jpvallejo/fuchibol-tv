@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import androidx.core.content.FileProvider;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -18,6 +19,9 @@ import java.io.File;
 
 @CapacitorPlugin(name = "ApkInstaller")
 public class ApkInstaller extends Plugin {
+
+    private DownloadManager downloadManager;
+    private long activeDownloadId = -1;
 
     @PluginMethod
     public void downloadAndInstall(PluginCall call) {
@@ -28,7 +32,7 @@ public class ApkInstaller extends Plugin {
         }
 
         Context context = getContext();
-        DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+        downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
 
         File downloadDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
         if (downloadDir == null) {
@@ -47,20 +51,21 @@ public class ApkInstaller extends Plugin {
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true);
 
-        long downloadId = dm.enqueue(request);
+        activeDownloadId = downloadManager.enqueue(request);
 
-        // Resolve immediately — download runs in background, install dialog appears when done
-        call.resolve();
+        JSObject result = new JSObject();
+        result.put("downloadId", activeDownloadId);
+        call.resolve(result);
 
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context ctx, Intent intent) {
                 long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                if (id != downloadId) return;
+                if (id != activeDownloadId) return;
 
                 ctx.unregisterReceiver(this);
 
-                Cursor cursor = dm.query(new DownloadManager.Query().setFilterById(id));
+                Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(id));
                 if (cursor != null && cursor.moveToFirst()) {
                     int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
                     cursor.close();
@@ -76,6 +81,32 @@ public class ApkInstaller extends Plugin {
             context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
         } else {
             context.registerReceiver(receiver, filter);
+        }
+    }
+
+    @PluginMethod
+    public void checkProgress(PluginCall call) {
+        if (activeDownloadId == -1 || downloadManager == null) {
+            call.reject("No active download");
+            return;
+        }
+
+        Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(activeDownloadId));
+        if (cursor != null && cursor.moveToFirst()) {
+            long downloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+            long total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+            cursor.close();
+
+            JSObject result = new JSObject();
+            result.put("downloaded", downloaded);
+            result.put("total", total);
+            result.put("percent", total > 0 ? (int) (downloaded * 100 / total) : -1);
+            result.put("status", status);
+            call.resolve(result);
+        } else {
+            if (cursor != null) cursor.close();
+            call.reject("Download not found");
         }
     }
 

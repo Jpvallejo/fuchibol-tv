@@ -213,6 +213,7 @@ interface CachedGuideDay extends GuideDayPayload {
 
 const screenGrid = document.getElementById('screen-grid')!
 const screenPlayer = document.getElementById('screen-player')!
+const gridLoadingOverlay = document.getElementById('grid-loading')!
 const channelGrid = document.getElementById('channel-grid')!
 const video = document.getElementById('video') as HTMLVideoElement
 const loadingSpinner = document.getElementById('loading-spinner')!
@@ -1353,18 +1354,22 @@ function renderEpgGrid(): void {
 }
 
 void (async () => {
-  // Check for app updates
+  // Check for updates first; if a modal is shown, await dismissal before
+  // rendering the grid so the background doesn't look odd behind the modal.
   try {
     const updateInfo = await checkForUpdates()
     if (updateInfo?.hasUpdate) {
-      showUpdateModal(updateInfo)
+      await showUpdateModal(updateInfo)
     }
   } catch (e) {
     console.warn('Update check error:', e)
   }
 
+  // Render channels with static data, then reveal the grid
   renderEpgGrid()
+  gridLoadingOverlay.hidden = true
 
+  // Fetch guide schedule in the background and re-render with program data
   await fetchGuideSchedule()
   renderEpgGrid()
   await loadGuideNowPlaying()

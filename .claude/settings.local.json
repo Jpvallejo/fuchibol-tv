@@ -18,7 +18,8 @@
       "Bash(cp /tmp/argentina-tv-release.keystore ~/argentina-tv-release.keystore *)",
       "Bash(xargs ls -la)",
       "Bash(ls /Users/jpvallejo/Documents/repos/fuchibol/app/api/proxy-hls/)",
-      "Read(//Users/jpvallejo/Documents/repos/fuchibol/app/api/proxy-hls/**)"
+      "Read(//Users/jpvallejo/Documents/repos/fuchibol/app/api/proxy-hls/**)",
+      "Bash(npx tsc *)"
     ],
     "additionalDirectories": [
       "/private/tmp"

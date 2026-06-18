@@ -1009,7 +1009,6 @@ button {
 .update-modal-buttons {
   display: flex;
   gap: 12px;
-  flex-direction: row-reverse;
 }
 
 .update-modal-button {
@@ -1046,4 +1045,70 @@ button {
 
 .dismiss-button:hover {
   background: var(--line-strong);
+}
+
+.update-modal-button.focused {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* ===== Download Progress ===== */
+.download-progress-section {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.download-progress-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.download-progress-bar {
+  height: 100%;
+  background: var(--accent-strong);
+  border-radius: 8px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.download-progress-label {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ===== Grid Loading Overlay ===== */
+.grid-loading-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top left, rgba(55, 201, 255, 0.2), transparent 28%),
+    radial-gradient(circle at right 10%, rgba(255, 96, 96, 0.12), transparent 22%),
+    linear-gradient(180deg, #05060d 0%, #070814 36%, #090b18 100%);
+  z-index: 8888;
+}
+
+.grid-loading-overlay[hidden] {
+  display: none;
+}
+
+.grid-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+.grid-loading-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: -0.02em;
 }

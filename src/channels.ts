@@ -440,42 +440,43 @@ async function decryptStreamUrl(encryptedUrl: string): Promise<string> {
   return new TextDecoder().decode(decrypted);
 }
 
-const MUNDIAL_FETCH_URL = "https://vix.vinxvodufon.uk/fetch";
+// const MUNDIAL_FETCH_URL = "https://vix.vinxvodufon.uk/fetch";
 const MUNDIAL_PROXY_URL = "https://fuchibol.vallejo.ar/api/get-mundial-channel";
 
 async function getMundialChannel(id: string): Promise<string> {
-  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  // const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  const {fetchUrl} = await (await fetch("https://fuchibol.vallejo.ar/api/get-fetch-url")).json();
 
-  if (!isNative) {
-    const response = await fetch(`${MUNDIAL_PROXY_URL}?id=${encodeURIComponent(id)}`);
+  // if (!isNative) {
+    const response = await fetch(`${MUNDIAL_PROXY_URL}?id=${encodeURIComponent(id)}&fetchUrl=${encodeURIComponent(fetchUrl)}`);
     const { streamUrl } = await response.json();
     return buildProxyHlsUrl(streamUrl);
-  }
+  // }
 
-  const response = await fetch(MUNDIAL_FETCH_URL, {
-    method: "POST",
-    headers: {
-      "Accept": "*/*",
-      "Accept-Language": "en-US,en;q=0.7",
-      "Cache-Control": "no-cache",
-      "Content-Type": "application/json",
-      "Origin": "https://junkieembeds.pages.dev",
-      "Pragma": "no-cache",
-      "Priority": "u=1, i",
-      "Referer": "https://junkieembeds.pages.dev/",
-      "Sec-CH-UA": '"Chromium";v="140", "Not=A?Brand";v="24", "Brave";v="140"',
-      "Sec-CH-UA-Mobile": "?0",
-      "Sec-CH-UA-Platform": '"macOS"',
-      "Sec-Fetch-Dest": "empty",
-      "Sec-Fetch-Mode": "cors",
-      "Sec-Fetch-Site": "cross-site",
-      "Sec-GPC": "1",
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
-    },
-    body: JSON.stringify({ id }),
-  });
+  // const response = await fetch(MUNDIAL_FETCH_URL, {
+  //   method: "POST",
+  //   headers: {
+  //     "Accept": "*/*",
+  //     "Accept-Language": "en-US,en;q=0.7",
+  //     "Cache-Control": "no-cache",
+  //     "Content-Type": "application/json",
+  //     "Origin": "https://junkieembeds.pages.dev",
+  //     "Pragma": "no-cache",
+  //     "Priority": "u=1, i",
+  //     "Referer": "https://junkieembeds.pages.dev/",
+  //     "Sec-CH-UA": '"Chromium";v="140", "Not=A?Brand";v="24", "Brave";v="140"',
+  //     "Sec-CH-UA-Mobile": "?0",
+  //     "Sec-CH-UA-Platform": '"macOS"',
+  //     "Sec-Fetch-Dest": "empty",
+  //     "Sec-Fetch-Mode": "cors",
+  //     "Sec-Fetch-Site": "cross-site",
+  //     "Sec-GPC": "1",
+  //     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+  //   },
+  //   body: JSON.stringify({ id }),
+  // });
 
-  return decryptStreamUrl((await response.json()).url);
+  // return decryptStreamUrl((await response.json()).url);
 }
 
 export { createLa14Channel, createM3u8Channel, getMundialChannel };
