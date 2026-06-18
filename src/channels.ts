@@ -440,7 +440,7 @@ async function decryptStreamUrl(encryptedUrl: string): Promise<string> {
   return new TextDecoder().decode(decrypted);
 }
 
-const MUNDIAL_FETCH_URL = "https://viled.hux-giants.shop/fetch";
+const MUNDIAL_FETCH_URL = "https://vix.vinxvodufon.uk/fetch";
 const MUNDIAL_PROXY_URL = "https://fuchibol.vallejo.ar/api/get-mundial-channel";
 
 async function getMundialChannel(id: string): Promise<string> {
@@ -504,6 +504,19 @@ const channelsRaw: Channel[] = [
     keyId: "",
     key: "",
     getManifestUrl: () => getMundialChannel("telemundo-usa"),
+    category: "MUNDIAL",
+  },
+  {
+    id: "telemundo-4k",
+    name: "Telemundo 4K",
+    shortName: "Telemundo 4K",
+    color: "#fbbf24",
+    movistarNumber: 0,
+    number: 4001,
+    image: CHANNEL_IMAGE_BY_NUMBER[4001] ?? null,
+    keyId: "",
+    key: "",
+    getManifestUrl: () => getMundialChannel("telemundo-4k"),
     category: "MUNDIAL",
   },
   {
