@@ -1,4 +1,4 @@
-import { channels } from './channels'
+import { channels, clearMundialFetchUrlCache } from './channels'
 import { ShakaPlayer } from './player'
 import fetchTvPassportGuide from './tvpassport-guide'
 import { GridNavigation, type NavigationCell } from './navigation'
@@ -1073,6 +1073,9 @@ const shakaPlayer = new ShakaPlayer(video, {
     errorOverlay.hidden = false
     console.error('Shaka playback error:', msg)
     errorMessage.textContent = 'Hubo un error al reproducir el canal'
+    if (channels[currentChannelIndex]?.category === 'MUNDIAL') {
+      clearMundialFetchUrlCache()
+    }
   },
 })
 

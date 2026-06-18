@@ -442,16 +442,24 @@ function createM3u8Channel(config: {
 
 // const MUNDIAL_FETCH_URL = "https://vix.vinxvodufon.uk/fetch";
 const MUNDIAL_PROXY_URL = "https://fuchibol.vallejo.ar/api/get-mundial-channel";
+const MUNDIAL_FETCH_URL_CACHE_KEY = "mundial-fetch-url";
+
+export function clearMundialFetchUrlCache(): void {
+  localStorage.removeItem(MUNDIAL_FETCH_URL_CACHE_KEY);
+}
 
 async function getMundialChannel(id: string): Promise<string> {
-  // const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
-  const {fetchUrl} = await (await fetch("https://fuchibol.vallejo.ar/api/get-fetch-url")).json();
+  let fetchUrl = localStorage.getItem(MUNDIAL_FETCH_URL_CACHE_KEY);
 
-  // if (!isNative) {
-    const response = await fetch(`${MUNDIAL_PROXY_URL}?id=${encodeURIComponent(id)}&fetchUrl=${encodeURIComponent(fetchUrl)}`);
-    const { streamUrl } = await response.json();
-    return buildProxyHlsUrl(streamUrl);
-  // }
+  if (!fetchUrl) {
+    const data = await (await fetch("https://fuchibol.vallejo.ar/api/get-fetch-url")).json();
+    fetchUrl = data.fetchUrl as string;
+    localStorage.setItem(MUNDIAL_FETCH_URL_CACHE_KEY, fetchUrl);
+  }
+
+  const response = await fetch(`${MUNDIAL_PROXY_URL}?id=${encodeURIComponent(id)}&fetchUrl=${encodeURIComponent(fetchUrl)}`);
+  const { streamUrl } = await response.json();
+  return buildProxyHlsUrl(streamUrl);
 
   // const response = await fetch(MUNDIAL_FETCH_URL, {
   //   method: "POST",
