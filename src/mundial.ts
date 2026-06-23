@@ -201,22 +201,34 @@ function updateSubstreamFocus(): void {
   items[focusedSubstreamIndex]?.scrollIntoView({ block: 'nearest' })
 }
 
+function tapIframeCenter(): void {
+  const rect = iframeEl.getBoundingClientRect()
+  const dpr = window.devicePixelRatio || 1
+  const cx = Math.round((rect.left + rect.width / 2) * dpr)
+  const cy = Math.round((rect.top + rect.height / 2) * dpr)
+  ;(window as any).NativeBridge?.tapAt(cx, cy)
+}
+
 function openIframe(url: string): void {
   isIframeOpen = true
   iframeEl.src = url
   iframeOverlay.hidden = false
   document.documentElement.classList.add('iframe-active')
+  ;(window as any).NativeBridge?.setIframeMode(true)
   closeSubstreamPicker()
-  // Give the iframe element focus so the system routes D-pad/pointer events
-  // into the iframe content rather than the parent app.
+  // Tap the center of the iframe after the page loads so the player autostarts.
+  // Delay gives the player JS time to initialize its UI after the HTML loads.
+  iframeEl.onload = () => setTimeout(tapIframeCenter, 1500)
   requestAnimationFrame(() => iframeEl.focus())
 }
 
 function closeIframe(): void {
   isIframeOpen = false
+  iframeEl.onload = null
   iframeOverlay.hidden = true
   iframeEl.src = ''
   document.documentElement.classList.remove('iframe-active')
+  ;(window as any).NativeBridge?.setIframeMode(false)
 }
 
 iframeCloseBtn.addEventListener('click', closeIframe)

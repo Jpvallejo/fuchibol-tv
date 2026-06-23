@@ -2,18 +2,56 @@ package com.argentina.tv;
 
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.webkit.JavascriptInterface;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+
+    /** Toggled from JS when an iframe stream is shown/hidden. */
+    private volatile boolean iframeMode = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ApkInstaller.class);
         super.onCreate(savedInstanceState);
+
+        // Allow media inside iframes to auto-play without a user gesture.
+        getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
+
+        // Expose a bridge so JS can switch iframe mode on/off and inject taps.
+        getBridge().getWebView().addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void setIframeMode(boolean active) {
+                iframeMode = active;
+            }
+
+            @JavascriptInterface
+            public void tapAt(int x, int y) {
+                getBridge().getWebView().post(() -> {
+                    long now = android.os.SystemClock.uptimeMillis();
+                    android.view.MotionEvent down = android.view.MotionEvent.obtain(
+                            now, now, android.view.MotionEvent.ACTION_DOWN, x, y, 0);
+                    android.view.MotionEvent up = android.view.MotionEvent.obtain(
+                            now, now + 100, android.view.MotionEvent.ACTION_UP, x, y, 0);
+                    getBridge().getWebView().dispatchTouchEvent(down);
+                    getBridge().getWebView().postDelayed(
+                            () -> getBridge().getWebView().dispatchTouchEvent(up), 100);
+                    down.recycle();
+                    up.recycle();
+                });
+            }
+        }, "NativeBridge");
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // While an iframe is on screen let Android handle events natively.
+        // This routes D-pad keys into the iframe content and restores the
+        // system pointer cursor.
+        if (iframeMode) {
+            return super.dispatchKeyEvent(event);
+        }
+
         if (event.getAction() != KeyEvent.ACTION_DOWN) {
             return super.dispatchKeyEvent(event);
         }
