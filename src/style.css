@@ -1402,3 +1402,11 @@ button {
   height: 100%;
   border: none;
 }
+
+/* Show pointer cursor while an iframe stream is active */
+html.iframe-active,
+html.iframe-active body,
+html.iframe-active .mundial-iframe-overlay,
+html.iframe-active .mundial-iframe {
+  cursor: default;
+}

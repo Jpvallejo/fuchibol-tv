@@ -205,13 +205,18 @@ function openIframe(url: string): void {
   isIframeOpen = true
   iframeEl.src = url
   iframeOverlay.hidden = false
+  document.documentElement.classList.add('iframe-active')
   closeSubstreamPicker()
+  // Give the iframe element focus so the system routes D-pad/pointer events
+  // into the iframe content rather than the parent app.
+  requestAnimationFrame(() => iframeEl.focus())
 }
 
 function closeIframe(): void {
   isIframeOpen = false
   iframeOverlay.hidden = true
   iframeEl.src = ''
+  document.documentElement.classList.remove('iframe-active')
 }
 
 iframeCloseBtn.addEventListener('click', closeIframe)
@@ -239,9 +244,10 @@ export function handleMundialKey(e: KeyboardEvent): boolean {
     if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
       e.preventDefault()
       closeIframe()
-      return true
     }
-    return false
+    // Consume every key while the iframe is active so no app-level
+    // behaviour (channel list, navigation, etc.) fires by accident.
+    return true
   }
 
   if (isSubstreamPickerOpen) {
