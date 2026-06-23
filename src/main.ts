@@ -1529,14 +1529,17 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (currentScreen === 'mundial') {
     if (handleMundialKey(e)) return
     // handleMundialKey returned false: either back key or ArrowUp from the top row
+    const mundialBackBtn = document.getElementById('mundial-back-btn')
     if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
       e.preventDefault()
       returnToGridFromMundial()
     } else if (e.key === 'ArrowUp') {
       // Top row reached — focus the back button in the Mundial header
       e.preventDefault()
-      const backBtn = document.getElementById('mundial-back-btn') as HTMLButtonElement | null
-      backBtn?.focus()
+      mundialBackBtn?.focus()
+    } else if (e.key === 'Enter' && document.activeElement === mundialBackBtn) {
+      e.preventDefault()
+      returnToGridFromMundial()
     }
     return
   }
@@ -1554,7 +1557,11 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
         focusGridChannelRow(0)
         return
       }
-      // Enter is handled natively by the button click listener
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        void openMundialScreen()
+        return
+      }
       return
     }
 
