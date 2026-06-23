@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=1920" />
   <title>Argentina TV</title>
   <script src="https://cdn.jsdelivr.net/npm/shaka-player@4/dist/shaka-player.compiled.js"></script>
-  <script type="module" crossorigin src="./assets/index-DfjtfKwI.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-B83cntbK.css">
+  <script type="module" crossorigin src="./assets/index-DrOgtKM0.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CAInKSzq.css">
 </head>
 <body>
   <!-- Channel Grid Screen -->
   <div id="screen-grid" class="screen active">
     <header class="grid-header">
       <span class="app-title">Argentina TV</span>
+      <button id="mundial-nav-btn" class="mundial-nav-btn">⚽ Mundial</button>
       <span class="live-dot-header">&#9679; EN VIVO</span>
     </header>
 
@@ -55,8 +56,42 @@
     </div>
   </div>
 
+  <!-- Mundial Screen -->
+  <div id="screen-mundial" class="screen">
+    <header class="mundial-header">
+      <button id="mundial-back-btn" class="mundial-back-btn">← Volver</button>
+      <span class="mundial-title">⚽ Mundial</span>
+      <span></span>
+    </header>
+    <div id="mundial-content" class="mundial-content"></div>
+
+    <!-- Substream picker overlay -->
+    <div id="mundial-substream-overlay" class="mundial-substream-overlay" hidden>
+      <div class="mundial-substream-panel">
+        <div class="mundial-substream-title" id="mundial-substream-event-name"></div>
+        <div class="mundial-substream-list" id="mundial-substream-list"></div>
+      </div>
+    </div>
+
+    <!-- Iframe overlay -->
+    <div id="mundial-iframe-overlay" class="mundial-iframe-overlay" hidden>
+      <button id="mundial-iframe-close" class="mundial-iframe-close">✕ Cerrar</button>
+      <iframe id="mundial-iframe" class="mundial-iframe" allowfullscreen allow="autoplay; fullscreen"></iframe>
+    </div>
+  </div>
+
   <div id="back-press-tooltip" class="back-press-tooltip" hidden>
     Presiona Back dos veces para salir
+  </div>
+
+  <!-- Initial loading screen shown until channels are ready -->
+  <div id="grid-loading" class="grid-loading-overlay">
+    <div class="grid-loading-content">
+      <span class="grid-loading-title">Argentina TV</span>
+      <div class="channel-loading-dots">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
   </div>
 
 </body>

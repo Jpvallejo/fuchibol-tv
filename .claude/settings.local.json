@@ -19,10 +19,12 @@
       "Bash(xargs ls -la)",
       "Bash(ls /Users/jpvallejo/Documents/repos/fuchibol/app/api/proxy-hls/)",
       "Read(//Users/jpvallejo/Documents/repos/fuchibol/app/api/proxy-hls/**)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(sed -i '' 's/    \\\\/\\\\/ getManifestUrl: \\(\\) => getMundialChannel\\\\\\(.*\\\\\\),/    \\\\/\\\\/ getManifestUrl: \\(\\) => getMundialChannel\\(...\\),\\\\n    getManifestUrl: \\(\\) => \"\",/g' /Users/jpvallejo/Documents/repos/fuchibol-ttv/fuchibol-tv/src/channels.ts)"
     ],
     "additionalDirectories": [
-      "/private/tmp"
+      "/private/tmp",
+      "/Users/jpvallejo/Documents/repos/fuchibol-ttv/fuchibol-tv/src"
     ]
   }
 }

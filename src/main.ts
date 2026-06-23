@@ -4,6 +4,7 @@ import fetchTvPassportGuide from './tvpassport-guide'
 import { GridNavigation, type NavigationCell } from './navigation'
 import { checkForUpdates } from './update-checker'
 import { showUpdateModal } from './update-modal'
+import { initMundialScreen, handleMundialKey } from './mundial'
 
 // Tvpassport guide URLs for OTA channels
 const TVPASSPORT_URLS: Record<number, string> = {
@@ -228,6 +229,7 @@ const overlayChannelNumber = document.getElementById('overlay-channel-number')!
 const guideOverlay = document.getElementById('guide-overlay')!
 const guideList = document.getElementById('guide-list')!
 const backPressTooltip = document.getElementById('back-press-tooltip')!
+const mundialNavBtn = document.getElementById('mundial-nav-btn')!
 let liveGuideLogoMap: Record<number, string> = {}
 let liveMovistarSchedule: Record<number, GuideProgram[]> = {}
 let liveSchedule: Record<number, GuideProgram[]> = {}
@@ -1096,7 +1098,7 @@ function resetOverlayTimer(): void {
   overlayTimer = setTimeout(hideOverlay, 5000)
 }
 
-type Screen = 'grid' | 'player'
+type Screen = 'grid' | 'player' | 'mundial'
 let currentScreen: Screen = 'grid'
 let gridNavigation: GridNavigation | null = null
 let currentProgramRows: NavigationCell[][] = []
@@ -1106,15 +1108,27 @@ let channelStickyButtons: HTMLButtonElement[] = []
 let focusedGridChannelRow = 0
 let currentChannelIndex = 0
 
+const screenMundial = document.getElementById('screen-mundial')!
+
 function showScreen(screen: Screen): void {
   currentScreen = screen
   screenGrid.classList.toggle('active', screen === 'grid')
   screenPlayer.classList.toggle('active', screen === 'player')
+  screenMundial.classList.toggle('active', screen === 'mundial')
   updateCurrentTimeFabVisibility()
 
   if (screen === 'grid') {
     focusGridChannelRow(focusedGridChannelRow)
   }
+}
+
+async function openMundialScreen(): Promise<void> {
+  showScreen('mundial')
+  await initMundialScreen()
+}
+
+function returnToGridFromMundial(): void {
+  showScreen('grid')
 }
 
 function focusGridChannelRow(rowIndex: number): void {
@@ -1345,7 +1359,7 @@ function renderEpgGrid(): void {
   const initialFocus = findInitialGridFocus(currentProgramRows, nowMinutes)
   gridNavigation.focusPosition(initialFocus.rowIndex, initialFocus.programIndex)
   focusedGridChannelRow = initialFocus.rowIndex
-  focusGridChannelRow(initialFocus.rowIndex)
+  mundialNavBtn.focus()
   setChannelLogos(liveGuideLogoMap)
 
   requestAnimationFrame(() => {
@@ -1512,7 +1526,38 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 }, { capture: true })
 
 document.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (currentScreen === 'mundial') {
+    if (handleMundialKey(e)) return
+    // handleMundialKey returned false: either back key or ArrowUp from the top row
+    if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
+      e.preventDefault()
+      returnToGridFromMundial()
+    } else if (e.key === 'ArrowUp') {
+      // Top row reached — focus the back button in the Mundial header
+      e.preventDefault()
+      const backBtn = document.getElementById('mundial-back-btn') as HTMLButtonElement | null
+      backBtn?.focus()
+    }
+    return
+  }
+
   if (currentScreen === 'grid') {
+    // When the Mundial nav button in the header is focused, handle D-pad there
+    if (document.activeElement === mundialNavBtn) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        focusGridChannelRow(0)
+        return
+      }
+      if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
+        e.preventDefault()
+        focusGridChannelRow(0)
+        return
+      }
+      // Enter is handled natively by the button click listener
+      return
+    }
+
     if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
       e.preventDefault()
       const now = Date.now()
@@ -1532,7 +1577,12 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 
     if (e.key === 'ArrowUp') {
       e.preventDefault()
-      moveGridChannelFocus(-1)
+      if (focusedGridChannelRow === 0) {
+        // Escape upward to the Mundial button in the header
+        mundialNavBtn.focus()
+      } else {
+        moveGridChannelFocus(-1)
+      }
       return
     }
 
@@ -1624,6 +1674,12 @@ guideItems.forEach((item, i) => {
 
 platformAPI.onBackButton(async () => {
   const now = Date.now()
+  if (currentScreen === 'mundial') {
+    if (!handleMundialKey(new KeyboardEvent('keydown', { key: 'Escape' }))) {
+      returnToGridFromMundial()
+    }
+    return
+  }
   if (currentScreen === 'grid') {
     if (!isCurrentTimeVisible()) {
       jumpToCurrentTime()
@@ -1643,4 +1699,12 @@ platformAPI.onBackButton(async () => {
       await returnToGrid()
     }
   }
+})
+
+mundialNavBtn.addEventListener('click', () => {
+  void openMundialScreen()
+})
+
+document.getElementById('screen-mundial')!.addEventListener('mundial:back', () => {
+  returnToGridFromMundial()
 })
