@@ -182,10 +182,10 @@ return buildProxyHlsUrl(`https://${selected.cdn}.cvattv.com.ar/${selected.token}
 function buildProxyHlsUrl(rawUrl: string): string {
   const encodedUrl = encodeURIComponent(rawUrl)
   const flowValue = 'https://portal.app.flow.com.ar'
-  return `https://fuchibol.vallejo.ar/api/proxy-hls?url=${encodedUrl}&referer=${encodeURIComponent(flowValue + '/')}&origin=${encodeURIComponent(flowValue)}`
+  return `http://localhost:3000/api/proxy-hls?url=${encodedUrl}&referer=${encodeURIComponent(flowValue + '/')}&origin=${encodeURIComponent(flowValue)}`
 }
 
-const CVATTV_RESOLVE_BACKEND_URL = 'https://fuchibol.vallejo.ar/api/get-cvattv-proxy'
+const CVATTV_RESOLVE_BACKEND_URL = 'http://localhost:3000/api/get-cvattv-proxy'
 
 async function fetchCvattvStreamUrl(path: string): Promise<string> {
   return path;
@@ -641,7 +641,7 @@ function createM3u8Channel(config: {
 // }
 
 // const MUNDIAL_FETCH_URL = "https://vix.vinxvodufon.uk/fetch";
-const MUNDIAL_PROXY_URL = "https://fuchibol.vallejo.ar/api/get-mundial-channel";
+const MUNDIAL_PROXY_URL = "http://localhost:3000/api/get-mundial-channel";
 const MUNDIAL_FETCH_URL_CACHE_KEY = "mundial-fetch-url";
 
 export function clearMundialFetchUrlCache(): void {
@@ -652,7 +652,7 @@ async function getMundialChannel(id: string): Promise<string> {
   let fetchUrl = localStorage.getItem(MUNDIAL_FETCH_URL_CACHE_KEY);
 
   if (!fetchUrl) {
-    const data = await (await fetch("https://fuchibol.vallejo.ar/api/get-fetch-url")).json();
+    const data = await (await fetch("http://localhost:3000/api/get-fetch-url")).json();
     fetchUrl = data.fetchUrl as string;
     localStorage.setItem(MUNDIAL_FETCH_URL_CACHE_KEY, fetchUrl);
   }

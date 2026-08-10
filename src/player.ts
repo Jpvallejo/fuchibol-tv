@@ -130,18 +130,9 @@ export class ShakaPlayer {
 
   private async loadWithShaka(channel: Channel, manifestUrl: string): Promise<void> {
     console.log(`[Player] loadWithShaka: ${manifestUrl}`)
-    
+
     const player = new shaka.Player(this.video)
     this.player = player
-
-    // Configure DASH DRM
-    player.configure({
-      drm: {
-        clearKeys: {
-          [channel.keyId]: channel.key,
-        },
-      },
-    })
 
     player.addEventListener('error', (event: shaka.PlayerEvent) => {
       const detail = event.detail
@@ -150,8 +141,39 @@ export class ShakaPlayer {
       this.callbacks.onError(msg)
     })
 
+    // Fetch Shaka setup from backend each time (manifest URLs are short-lived)
+    const setupUrl = `http://localhost:3000/api/get-shaka-setup?channel=${encodeURIComponent(channel.id)}`
+    let setupResp: Response
+    try {
+      setupResp = await fetch(setupUrl, { method: 'GET' })
+    } catch (err) {
+      console.error('[Player] Failed to fetch Shaka setup:', err)
+      this.callbacks.onError('Stream unavailable')
+      throw new Error('Stream unavailable')
+    }
+
+    if (!setupResp.ok) {
+      console.error('[Player] Shaka setup returned non-200:', setupResp.status)
+      this.callbacks.onError('Stream unavailable')
+      throw new Error('Stream unavailable')
+    }
+
+    const data = await setupResp.json().catch((e) => ({ error: `invalid_json: ${e}` }))
+    if (!data || data.error) {
+      console.error('[Player] Shaka setup error:', data?.error ?? data)
+      this.callbacks.onError('Stream unavailable')
+      throw new Error('Stream unavailable')
+    }
+
+    const manifestUri: string = data.originalManifestUri || data.manifestUri
+    const fallbackManifests: string[] = Array.isArray(data.fallbackManifests) ? data.fallbackManifests : []
+    const clearKeys: Record<string, string> = data.clearKeys || {}
+
+    // Configure DASH DRM with returned clearKeys
+    player.configure({ drm: { clearKeys } })
+
     // Configure network request headers for fubohd.com URLs
-    const isFuboHdSession = manifestUrl.includes('fubohd.com')
+    const isFuboHdSession = manifestUri && manifestUri.includes('fubohd.com')
     if (isFuboHdSession) {
       console.log('Detected fubohd.com session, forcing referer/origin headers')
       const networkingEngine = player.getNetworkingEngine()
@@ -164,7 +186,26 @@ export class ShakaPlayer {
       })
     }
 
-    await player.load(manifestUrl)
+    // Try loading primary manifest, then fallbacks in order
+    const allManifests = [manifestUri, ...fallbackManifests]
+    let lastErr: any = null
+    for (const uri of allManifests) {
+      if (!uri) continue
+      try {
+        console.log(`[Player] Attempting Shaka load: ${uri}`)
+        await player.load(uri)
+        // success
+        return
+      } catch (err) {
+        console.warn(`[Player] Shaka load failed for ${uri}:`, err)
+        lastErr = err
+      }
+    }
+
+    // All attempts failed
+    console.error('[Player] All Shaka manifest loads failed')
+    this.callbacks.onError('Error al reproducir el canal')
+    throw lastErr || new Error('Shaka load failed')
   }
 
   async destroyPlayer(): Promise<void> {
