@@ -182,10 +182,10 @@ return buildProxyHlsUrl(`https://${selected.cdn}.cvattv.com.ar/${selected.token}
 function buildProxyHlsUrl(rawUrl: string): string {
   const encodedUrl = encodeURIComponent(rawUrl)
   const flowValue = 'https://portal.app.flow.com.ar'
-  return `https://fuchibol.vallejo.ar/api/proxy-hls?url=${encodedUrl}&referer=${encodeURIComponent(flowValue + '/')}&origin=${encodeURIComponent(flowValue)}`
+  return `https://fuchibol-local.vallejo.ar/api/proxy-hls?url=${encodedUrl}&referer=${encodeURIComponent(flowValue + '/')}&origin=${encodeURIComponent(flowValue)}`
 }
 
-const CVATTV_RESOLVE_BACKEND_URL = 'https://fuchibol.vallejo.ar/api/get-cvattv-proxy'
+const CVATTV_RESOLVE_BACKEND_URL = 'https://fuchibol-local.vallejo.ar/api/get-cvattv-proxy'
 
 async function fetchCvattvStreamUrl(path: string): Promise<string> {
   return path;
@@ -520,8 +520,15 @@ function createCvattvChannel(config: {
   fallbackM3u8Url?: string;
   category?: ChannelCategory;
 }): Channel {
+  // Derive channel id from the last path segment of the provided URL
+  const urlLastPart = (config.url || "").split("/").pop() || "";
+  const derivedId = urlLastPart.toLowerCase().endsWith(".mpd")
+    ? urlLastPart.slice(0, -4)
+    : urlLastPart;
+  const channelId = derivedId || config.id;
+
   return {
-    id: config.id,
+    id: channelId,
     name: config.name,
     shortName: config.shortName,
     color: config.color,
@@ -641,7 +648,7 @@ function createM3u8Channel(config: {
 // }
 
 // const MUNDIAL_FETCH_URL = "https://vix.vinxvodufon.uk/fetch";
-const MUNDIAL_PROXY_URL = "https://fuchibol.vallejo.ar/api/get-mundial-channel";
+const MUNDIAL_PROXY_URL = "https://fuchibol-local.vallejo.ar/api/get-mundial-channel";
 const MUNDIAL_FETCH_URL_CACHE_KEY = "mundial-fetch-url";
 
 export function clearMundialFetchUrlCache(): void {
@@ -652,7 +659,7 @@ async function getMundialChannel(id: string): Promise<string> {
   let fetchUrl = localStorage.getItem(MUNDIAL_FETCH_URL_CACHE_KEY);
 
   if (!fetchUrl) {
-    const data = await (await fetch("https://fuchibol.vallejo.ar/api/get-fetch-url")).json();
+    const data = await (await fetch("https://fuchibol-local.vallejo.ar/api/get-fetch-url")).json();
     fetchUrl = data.fetchUrl as string;
     localStorage.setItem(MUNDIAL_FETCH_URL_CACHE_KEY, fetchUrl);
   }
@@ -984,7 +991,7 @@ const channelsRaw: Channel[] = [
   //   category: "USA",
   // },
   createChannel({
-    id: "america-tv",
+    id: "AmericaTV",
     name: "America TV",
     shortName: "America",
     color: "#4f86f7",
@@ -1001,7 +1008,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "telefe",
+    id: "TelefeHD",
     name: "Telefe",
     shortName: "Telefe",
     color: "#00a8e8",
@@ -1018,7 +1025,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "eltrece",
+    id: "ArtearHD",
     name: "El trece",
     shortName: "El trece",
     color: "#00a8e8",
@@ -1035,7 +1042,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "tv-publica",
+    id: "Canal7",
     name: "TV Publica",
     shortName: "TVP",
     color: "#0f766e",
@@ -1052,7 +1059,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "canal-9",
+    id: "Canal9",
     name: "Canal 9",
     shortName: "C9",
     color: "#f97316",
@@ -1069,7 +1076,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "tn",
+    id: "TodoNoticias",
     name: "TN",
     shortName: "TN",
     color: "#dc2626",
@@ -1086,7 +1093,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "lnmas",
+    id: "La_Nacion",
     name: "LN+",
     shortName: "LN+",
     color: "#2563eb",
@@ -1103,7 +1110,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "c5n",
+    id: "C5N",
     name: "C5N",
     shortName: "C5N",
     color: "#0ea5e9",
@@ -1120,7 +1127,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "cronica-tv",
+    id: "CronicaTV",
     name: "Cronica TV",
     shortName: "Cronica",
     color: "#be123c",
@@ -1137,7 +1144,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "canal-26",
+    id: "26_TV_HD",
     name: "Canal 26",
     shortName: "Canal 26",
     color: "#334155",
@@ -1154,7 +1161,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "a24",
+    id: "America24",
     name: "A24",
     shortName: "A24",
     color: "#2563eb",
@@ -1171,7 +1178,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "deportv",
+    id: "DeporTVHD",
     name: "DeporTV",
     shortName: "DeporTV",
     color: "#16a34a",
@@ -1318,7 +1325,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "el-garage",
+    id: "El_Garage",
     name: "El Garage",
     shortName: "Garage",
     color: "#92400e",
@@ -1335,7 +1342,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "discovery-turbo",
+    id: "DiscoveryTurbo",
     name: "Discovery Turbo",
     shortName: "Turbo",
     color: "#475569",
@@ -1381,7 +1388,7 @@ const channelsRaw: Channel[] = [
     },
   }),
   createChannel({
-    id: "paka-paka",
+    id: "PAKA_PAKA",
     name: "PakaPaka",
     shortName: "PakaPaka",
     color: "#fb7185",
