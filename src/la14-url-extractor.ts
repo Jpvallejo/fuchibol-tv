@@ -8,7 +8,7 @@ export async function getLa14Url(pageUrl: string): Promise<string | null> {
       .replace(/\\u0026/g, '&')
       .trim()
     const encodedUrl = encodeURIComponent(normalizedUrl)
-    return `http://localhost:3000/api/proxy-hls?url=${encodedUrl}`
+    return `https://fuchibol.vallejo.ar/api/proxy-hls?url=${encodedUrl}`
   }
 
   try {
