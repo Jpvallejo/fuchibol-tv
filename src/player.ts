@@ -142,7 +142,7 @@ export class ShakaPlayer {
     })
 
     // Fetch Shaka setup from backend each time (manifest URLs are short-lived)
-    const setupUrl = `http://localhost:3000/api/get-shaka-setup?channel=${encodeURIComponent(channel.id)}`
+    const setupUrl = `https://fuchibol.vallejo.ar/api/get-shaka-setup?channel=${encodeURIComponent(channel.id)}`
     let setupResp: Response
     try {
       setupResp = await fetch(setupUrl, { method: 'GET' })
