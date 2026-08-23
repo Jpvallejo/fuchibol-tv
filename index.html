@@ -8,11 +8,25 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
-  <!-- Channel Grid Screen -->
-  <div id="screen-grid" class="screen active">
+  <!-- Category Picker Screen -->
+  <div id="screen-categories" class="screen active">
     <header class="grid-header">
       <span class="app-title">Argentina TV</span>
-      <button id="mundial-nav-btn" class="mundial-nav-btn">⚽ Mundial</button>
+      <span class="live-dot-header">&#9679; EN VIVO</span>
+    </header>
+
+    <div id="categories-content" class="categories-content">
+      <p class="categories-kicker">Elegí qué ver</p>
+      <h1 class="categories-heading">Guía de canales</h1>
+      <div id="categories-grid" class="categories-grid" role="grid" aria-label="Categorías de canales"></div>
+    </div>
+  </div>
+
+  <!-- Channel Grid Screen -->
+  <div id="screen-grid" class="screen">
+    <header class="grid-header">
+      <button id="categories-back-btn" class="categories-back-btn">← Categorías</button>
+      <span id="grid-category-label" class="grid-category-label"></span>
       <span class="live-dot-header">&#9679; EN VIVO</span>
     </header>
 
@@ -52,30 +66,6 @@
     <div id="guide-overlay" class="guide-overlay" hidden>
       <div class="guide-header">Guía de canales</div>
       <div id="guide-list" class="guide-list"></div>
-    </div>
-  </div>
-
-  <!-- Mundial Screen -->
-  <div id="screen-mundial" class="screen">
-    <header class="mundial-header">
-      <button id="mundial-back-btn" class="mundial-back-btn">← Volver</button>
-      <span class="mundial-title">⚽ Mundial</span>
-      <span></span>
-    </header>
-    <div id="mundial-content" class="mundial-content"></div>
-
-    <!-- Substream picker overlay -->
-    <div id="mundial-substream-overlay" class="mundial-substream-overlay" hidden>
-      <div class="mundial-substream-panel">
-        <div class="mundial-substream-title" id="mundial-substream-event-name"></div>
-        <div class="mundial-substream-list" id="mundial-substream-list"></div>
-      </div>
-    </div>
-
-    <!-- Iframe overlay -->
-    <div id="mundial-iframe-overlay" class="mundial-iframe-overlay" hidden>
-      <button id="mundial-iframe-close" class="mundial-iframe-close">✕ Cerrar</button>
-      <iframe id="mundial-iframe" class="mundial-iframe" allowfullscreen allow="autoplay; fullscreen"></iframe>
     </div>
   </div>
 

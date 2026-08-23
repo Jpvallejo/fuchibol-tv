@@ -4,7 +4,6 @@ import fetchTvPassportGuide from './tvpassport-guide'
 import { GridNavigation, type NavigationCell } from './navigation'
 import { checkForUpdates } from './update-checker'
 import { showUpdateModal } from './update-modal'
-import { initMundialScreen, handleMundialKey } from './mundial'
 
 // Tvpassport guide URLs for OTA channels
 const TVPASSPORT_URLS: Record<number, string> = {
@@ -158,6 +157,10 @@ interface ChannelRowRenderState {
   laneElement: HTMLElement
   cells: RenderableProgramCell[]
   loadedProgramIndexes: Set<number>
+  // Program-cell geometry (schedule lookup, normalization, layout math) is the
+  // expensive per-channel work — deferred until the row is actually near the
+  // viewport, same as the DOM program-blocks themselves.
+  cellsReady: boolean
 }
 
 const FALLBACK_GUIDE_REFRESH_MS = 5 * 60 * 1000
@@ -212,10 +215,14 @@ interface CachedGuideDay extends GuideDayPayload {
   expiresAt: string
 }
 
+const screenCategories = document.getElementById('screen-categories')!
 const screenGrid = document.getElementById('screen-grid')!
 const screenPlayer = document.getElementById('screen-player')!
 const gridLoadingOverlay = document.getElementById('grid-loading')!
 const channelGrid = document.getElementById('channel-grid')!
+const categoriesGrid = document.getElementById('categories-grid')!
+const categoriesBackBtn = document.getElementById('categories-back-btn')!
+const gridCategoryLabel = document.getElementById('grid-category-label')!
 const video = document.getElementById('video') as HTMLVideoElement
 const loadingSpinner = document.getElementById('loading-spinner')!
 const loadingLogo = document.getElementById('loading-logo') as HTMLElement
@@ -229,7 +236,6 @@ const overlayChannelNumber = document.getElementById('overlay-channel-number')!
 const guideOverlay = document.getElementById('guide-overlay')!
 const guideList = document.getElementById('guide-list')!
 const backPressTooltip = document.getElementById('back-press-tooltip')!
-const mundialNavBtn = document.getElementById('mundial-nav-btn')!
 let liveGuideLogoMap: Record<number, string> = {}
 let liveMovistarSchedule: Record<number, GuideProgram[]> = {}
 let liveSchedule: Record<number, GuideProgram[]> = {}
@@ -915,7 +921,9 @@ async function ensureMissingChannelSchedules(
         if (programs && programs.length > 0) {
           const merged = mergeScheduleCache(dayKey, { [channelNumber]: programs })
           liveSchedule = merged.schedule
-          renderEpgGrid()
+          // Only rebuild the EPG grid if the user has actually entered it —
+          // it's not built at all while still on the category picker.
+          if (currentEpgFilter !== null) renderEpgGrid()
           void loadGuideNowPlaying()
           scheduleGuideRefresh()
         }
@@ -1098,8 +1106,8 @@ function resetOverlayTimer(): void {
   overlayTimer = setTimeout(hideOverlay, 5000)
 }
 
-type Screen = 'grid' | 'player' | 'mundial'
-let currentScreen: Screen = 'grid'
+type Screen = 'categories' | 'grid' | 'player'
+let currentScreen: Screen = 'categories'
 let gridNavigation: GridNavigation | null = null
 let currentProgramRows: NavigationCell[][] = []
 let rowRenderStates: ChannelRowRenderState[] = []
@@ -1108,27 +1116,32 @@ let channelStickyButtons: HTMLButtonElement[] = []
 let focusedGridChannelRow = 0
 let currentChannelIndex = 0
 
-const screenMundial = document.getElementById('screen-mundial')!
+type CategoryFilter = NonNullable<typeof channels[number]['category']> | 'ALL'
+let activeChannels: typeof channels = []
+let currentEpgFilter: CategoryFilter | null = null
 
 function showScreen(screen: Screen): void {
   currentScreen = screen
+  screenCategories.classList.toggle('active', screen === 'categories')
   screenGrid.classList.toggle('active', screen === 'grid')
   screenPlayer.classList.toggle('active', screen === 'player')
-  screenMundial.classList.toggle('active', screen === 'mundial')
   updateCurrentTimeFabVisibility()
 
+  if (screen === 'categories') {
+    focusCategoryTile(focusedCategoryTile)
+  }
   if (screen === 'grid') {
     focusGridChannelRow(focusedGridChannelRow)
   }
 }
 
-async function openMundialScreen(): Promise<void> {
-  showScreen('mundial')
-  await initMundialScreen()
+function enterGrid(filter: CategoryFilter): void {
+  renderEpgGrid(filter)
+  showScreen('grid')
 }
 
-function returnToGridFromMundial(): void {
-  showScreen('grid')
+function returnToCategories(): void {
+  showScreen('categories')
 }
 
 function focusGridChannelRow(rowIndex: number): void {
@@ -1148,6 +1161,149 @@ function focusGridChannelRow(rowIndex: number): void {
 
 function moveGridChannelFocus(delta: number): void {
   focusGridChannelRow(focusedGridChannelRow + delta)
+}
+
+// ===== Category picker screen =====
+
+const CATEGORY_GRID_COLUMNS = 4
+
+const CATEGORY_LABELS: Partial<Record<NonNullable<typeof channels[number]['category']>, { label: string, icon: string }>> = {
+  GENERAL: { label: 'General', icon: '📡' },
+  SPORTS: { label: 'Deportes', icon: '⚽' },
+  USA: { label: 'Estados Unidos', icon: '🇺🇸' },
+  KIDS: { label: 'Infantiles', icon: '🧸' },
+  MOVIES: { label: 'Películas', icon: '🎬' },
+  DOCUMENTARY: { label: 'Documentales', icon: '🌍' },
+  MUSIC: { label: 'Música', icon: '🎵' },
+  NEWS: { label: 'Noticias', icon: '📰' },
+  VARIETY: { label: 'Variedades', icon: '✨' },
+  OTHER: { label: 'Otros', icon: '📻' },
+  URUGUAY: { label: 'Uruguay', icon: '🇺🇾' },
+  PARAGUAY: { label: 'Paraguay', icon: '🇵🇾' },
+}
+
+interface CategoryTileInfo {
+  key: CategoryFilter
+  label: string
+  icon: string
+  count: number
+}
+
+// Categories are derived from the channel data itself (in first-seen order,
+// which already follows the curated category order from channels.ts) so the
+// picker always matches what actually exists — no category ever goes stale.
+function getAvailableCategories(): CategoryTileInfo[] {
+  const order: string[] = []
+  const counts = new Map<string, number>()
+
+  channels.forEach((ch) => {
+    const category = ch.category ?? 'OTHER'
+    if (category === 'MUNDIAL') return // retired feature; never surface even if data reappears
+    if (!counts.has(category)) order.push(category)
+    counts.set(category, (counts.get(category) ?? 0) + 1)
+  })
+
+  return order.map((category) => ({
+    key: category as CategoryFilter,
+    label: CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]?.label ?? category,
+    icon: CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]?.icon ?? '📺',
+    count: counts.get(category) ?? 0,
+  }))
+}
+
+let categoryTiles: HTMLButtonElement[] = []
+let focusedCategoryTile = 0
+
+function renderCategoriesScreen(): void {
+  categoriesGrid.innerHTML = ''
+  categoryTiles = []
+
+  const allTile = document.createElement('button')
+  allTile.type = 'button'
+  allTile.className = 'category-tile category-tile-all'
+  allTile.innerHTML = `
+    <span class="category-tile-icon">📺</span>
+    <span class="category-tile-name">Guía completa</span>
+    <span class="category-tile-count">${channels.length} canales</span>
+  `
+  allTile.addEventListener('click', () => enterGrid('ALL'))
+  categoriesGrid.appendChild(allTile)
+  categoryTiles.push(allTile)
+
+  getAvailableCategories().forEach((category) => {
+    const tile = document.createElement('button')
+    tile.type = 'button'
+    tile.className = 'category-tile'
+    tile.innerHTML = `
+      <span class="category-tile-icon">${category.icon}</span>
+      <span class="category-tile-name">${category.label}</span>
+      <span class="category-tile-count">${category.count} canales</span>
+    `
+    tile.addEventListener('click', () => enterGrid(category.key))
+    categoriesGrid.appendChild(tile)
+    categoryTiles.push(tile)
+  })
+}
+
+function focusCategoryTile(index: number): void {
+  if (categoryTiles.length === 0) return
+
+  const clamped = Math.min(Math.max(index, 0), categoryTiles.length - 1)
+  focusedCategoryTile = clamped
+
+  categoryTiles.forEach((tile, i) => {
+    tile.classList.toggle('focused', i === clamped)
+  })
+
+  const target = categoryTiles[clamped]
+  target?.focus()
+  target?.scrollIntoView({ block: 'nearest' })
+}
+
+// The "Guía completa" tile spans its own full row (index 0); the rest fill a
+// regular CATEGORY_GRID_COLUMNS-wide grid starting at row 1.
+function getCategoryTileRowCol(index: number): { row: number, col: number } {
+  if (index === 0) return { row: 0, col: 0 }
+  const i = index - 1
+  return { row: 1 + Math.floor(i / CATEGORY_GRID_COLUMNS), col: i % CATEGORY_GRID_COLUMNS }
+}
+
+function moveCategoryFocus(key: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight'): void {
+  if (categoryTiles.length === 0) return
+  const { row, col } = getCategoryTileRowCol(focusedCategoryTile)
+
+  if (key === 'ArrowUp') {
+    if (focusedCategoryTile === 0) return
+    if (row === 1) {
+      focusCategoryTile(0)
+      return
+    }
+    focusCategoryTile(focusedCategoryTile - CATEGORY_GRID_COLUMNS)
+    return
+  }
+
+  if (key === 'ArrowDown') {
+    if (focusedCategoryTile === 0) {
+      focusCategoryTile(Math.min(1, categoryTiles.length - 1))
+      return
+    }
+    const target = focusedCategoryTile + CATEGORY_GRID_COLUMNS
+    if (target < categoryTiles.length) focusCategoryTile(target)
+    return
+  }
+
+  if (key === 'ArrowLeft') {
+    if (focusedCategoryTile === 0 || col === 0) return
+    focusCategoryTile(focusedCategoryTile - 1)
+    return
+  }
+
+  if (key === 'ArrowRight') {
+    if (focusedCategoryTile === 0) return
+    if (col < CATEGORY_GRID_COLUMNS - 1 && focusedCategoryTile + 1 < categoryTiles.length) {
+      focusCategoryTile(focusedCategoryTile + 1)
+    }
+  }
 }
 
 function getChannelColumnPx(): number {
@@ -1208,11 +1364,52 @@ function ensureLazyRenderHandlersBound(): void {
   window.addEventListener('resize', schedule)
 }
 
+// Computes a row's program-cell geometry (schedule lookup, day normalization,
+// layout math) on demand. This is the CPU-heavy per-channel work, so it's
+// deferred until the row is actually near the viewport instead of running
+// for every channel up front — the same lazy pattern already used for the
+// DOM program-block buttons themselves.
+function computeRowCells(state: ChannelRowRenderState, nowMinutes: number): void {
+  if (state.cellsReady) return
+  state.cellsReady = true
+
+  const channelPrograms = getChannelPrograms(state.channel)
+  const normalizedPrograms = normalizeProgramsInSourceOrder(channelPrograms)
+  const currentProgram = getCurrentProgram(channelPrograms, nowMinutes)
+
+  normalizedPrograms.forEach((program, programIndex) => {
+    const geometry = calculateProgramCellGeometry({
+      startMinutes: program.startMinutes,
+      endMinutes: program.endMinutes,
+      minimumMinutes: 0,
+      maximumMinutes: GRID_WIDTH_MINUTES,
+    })
+    if (!geometry) return
+
+    const splitLabel = splitProgramLabel(program.title)
+    const isCurrent = currentProgram
+      ? currentProgram.start === program.start && currentProgram.end === program.end && currentProgram.title === program.title
+      : false
+
+    state.cells.push({
+      programIndex,
+      program,
+      geometry,
+      splitLabel,
+      isCurrent,
+    })
+  })
+}
+
 function renderVisibleCellsForViewport(): void {
+  const nowMinutes = getArgentinaNowMinutes()
+
   rowRenderStates.forEach((state) => {
     if (!isRowNearViewport(state.rowElement)) {
       return
     }
+
+    computeRowCells(state, nowMinutes)
 
     state.cells.forEach((cell) => {
       if (state.loadedProgramIndexes.has(cell.programIndex)) {
@@ -1239,7 +1436,7 @@ function renderVisibleCellsForViewport(): void {
         if (gridNavigation) {
           gridNavigation.focusPosition(state.rowIndex, cell.programIndex)
         }
-        void openChannel(state.rowIndex)
+        void openChannel(state.channel, state.rowIndex)
       })
 
       state.laneElement.appendChild(block)
@@ -1258,7 +1455,18 @@ function renderVisibleCellsForViewport(): void {
   })
 }
 
-function renderEpgGrid(): void {
+function getCategoryLabel(filter: CategoryFilter): string {
+  if (filter === 'ALL') return 'Guía completa'
+  return CATEGORY_LABELS[filter as keyof typeof CATEGORY_LABELS]?.label ?? filter
+}
+
+function renderEpgGrid(filter: CategoryFilter = currentEpgFilter ?? 'ALL'): void {
+  currentEpgFilter = filter
+  activeChannels = filter === 'ALL'
+    ? channels
+    : channels.filter((channel) => (channel.category ?? 'OTHER') === filter)
+  gridCategoryLabel.textContent = getCategoryLabel(filter)
+
   const nowMinutes = getArgentinaNowMinutes()
   const totalWidth = GRID_WIDTH_MINUTES * GRID_PIXELS_PER_MINUTE
 
@@ -1268,11 +1476,11 @@ function renderEpgGrid(): void {
   currentTimeIndicator.style.height = '100%'
   currentTimeIndicator.style.top = '0'
 
-  currentProgramRows = channels.map(() => [])
+  currentProgramRows = activeChannels.map(() => [])
   rowRenderStates = []
   channelStickyButtons = []
 
-  channels.forEach((channel, rowIndex) => {
+  activeChannels.forEach((channel, rowIndex) => {
     const row = document.createElement('div')
     row.className = 'channel-row'
     row.style.minWidth = `${CHANNEL_COLUMN_WIDTH + totalWidth}px`
@@ -1289,49 +1497,13 @@ function renderEpgGrid(): void {
       </span>
     `
     sticky.addEventListener('click', () => {
-      void openChannel(rowIndex)
+      void openChannel(channel, rowIndex)
     })
     channelStickyButtons.push(sticky)
 
     const lane = document.createElement('div')
     lane.className = 'channel-programs'
     lane.style.width = `${totalWidth}px`
-
-    const channelPrograms = getChannelPrograms(channel)
-    const normalizedPrograms = normalizeProgramsInSourceOrder(channelPrograms)
-
-    const currentProgram = getCurrentProgram(channelPrograms, nowMinutes)
-    const cells: RenderableProgramCell[] = []
-
-    normalizedPrograms.forEach((program, programIndex) => {
-      const geometry = calculateProgramCellGeometry({
-        startMinutes: program.startMinutes,
-        endMinutes: program.endMinutes,
-        minimumMinutes: 0,
-        maximumMinutes: GRID_WIDTH_MINUTES,
-      })
-      if (!geometry) return
-
-      const splitLabel = splitProgramLabel(program.title)
-      const isCurrent = currentProgram
-        ? currentProgram.start === program.start && currentProgram.end === program.end && currentProgram.title === program.title
-        : false
-
-      cells.push({
-        programIndex,
-        program,
-        geometry,
-        splitLabel,
-        isCurrent,
-      })
-    })
-
-    const currentProgramText = sticky.querySelector('.channel-sticky-live') as HTMLElement | null
-    if (currentProgramText) {
-      currentProgramText.textContent = currentProgram
-        ? currentProgram.title
-        : 'Sin programa en vivo'
-    }
 
     row.append(sticky, lane)
     rowsContainer.appendChild(row)
@@ -1340,8 +1512,9 @@ function renderEpgGrid(): void {
       rowIndex,
       rowElement: row,
       laneElement: lane,
-      cells,
+      cells: [],
       loadedProgramIndexes: new Set<number>(),
+      cellsReady: false,
     })
   })
 
@@ -1359,7 +1532,6 @@ function renderEpgGrid(): void {
   const initialFocus = findInitialGridFocus(currentProgramRows, nowMinutes)
   gridNavigation.focusPosition(initialFocus.rowIndex, initialFocus.programIndex)
   focusedGridChannelRow = initialFocus.rowIndex
-  mundialNavBtn.focus()
   setChannelLogos(liveGuideLogoMap)
 
   requestAnimationFrame(() => {
@@ -1382,37 +1554,48 @@ void (async () => {
     console.warn('Update check error:', e)
   }
 
-  // Render channels with static data, then reveal the grid
-  renderEpgGrid()
+  // Build the category picker and reveal it — the (potentially heavy) EPG
+  // grid itself isn't built until the user actually picks "Guía completa" or
+  // a category, keeping startup light regardless of channel count.
+  renderCategoriesScreen()
+  showScreen('categories')
   gridLoadingOverlay.hidden = true
 
-  // Fetch guide schedule in the background and re-render with program data
+  // Fetch guide schedule in the background and re-render the grid with
+  // program data, if the user has already entered it.
   await fetchGuideSchedule()
-  renderEpgGrid()
+  if (currentEpgFilter !== null) renderEpgGrid()
   await loadGuideNowPlaying()
   scheduleGuideRefresh()
 })()
 
-async function openChannel(index: number): Promise<void> {
-  const ch = channels[index]
-  if (!ch) return
+// `rowIndex`, when known, is the channel's position in the currently rendered
+// (possibly category-filtered) grid — used to keep grid focus in sync so
+// returning to the grid restores the last-viewed channel. Callers outside the
+// grid (channel-up/down, the in-player quick switcher) don't know it; in that
+// case we best-effort look the channel up among the rendered rows.
+async function openChannel(channel: typeof channels[number], rowIndex?: number): Promise<void> {
+  currentChannelIndex = channels.indexOf(channel)
 
-  currentChannelIndex = index
-  // Keep the grid focus in sync so returning to the grid restores
-  // the last-viewed channel instead of jumping to the start.
-  focusedGridChannelRow = index
-  overlayChannelNumber.textContent = `${ch.number}`
-  overlayChannelName.textContent = ch.name
+  if (rowIndex !== undefined) {
+    focusedGridChannelRow = rowIndex
+  } else {
+    const renderedIndex = rowRenderStates.findIndex((state) => state.channel === channel)
+    if (renderedIndex !== -1) focusedGridChannelRow = renderedIndex
+  }
 
-  const logoUrl = ch.image ?? liveGuideLogoMap[ch.number]
+  overlayChannelNumber.textContent = `${channel.number}`
+  overlayChannelName.textContent = channel.name
+
+  const logoUrl = channel.image ?? liveGuideLogoMap[channel.number]
   loadingLogo.style.backgroundImage = logoUrl ? `url('${logoUrl}')` : ''
-  loadingNumber.textContent = `Canal ${ch.number}`
-  loadingName.textContent = ch.name
+  loadingNumber.textContent = `Canal ${channel.number}`
+  loadingName.textContent = channel.name
 
   showScreen('player')
   hideOverlay()
 
-  await shakaPlayer.load(ch)
+  await shakaPlayer.load(channel)
 }
 
 function selectGuideChannel(index: number): void {
@@ -1423,7 +1606,8 @@ function selectGuideChannel(index: number): void {
   }
 
   closeGuide()
-  void openChannel(index)
+  const channel = channels[index]
+  if (channel) void openChannel(channel)
 }
 
 async function returnToGrid(): Promise<void> {
@@ -1441,13 +1625,13 @@ async function returnToGrid(): Promise<void> {
 async function channelUp(): Promise<void> {
   const next = (currentChannelIndex + 1) % channels.length
   closeGuide()
-  await openChannel(next)
+  await openChannel(channels[next])
 }
 
 async function channelDown(): Promise<void> {
   const next = (currentChannelIndex - 1 + channels.length) % channels.length
   closeGuide()
-  await openChannel(next)
+  await openChannel(channels[next])
 }
 
 let isGuideOpen = false
@@ -1510,7 +1694,7 @@ function scheduleGuideRefresh(): void {
 
 async function refreshGuideNowPlaying(): Promise<void> {
   await fetchGuideSchedule()
-  renderEpgGrid()
+  if (currentEpgFilter !== null) renderEpgGrid()
   await loadGuideNowPlaying()
   scheduleGuideRefresh()
 }
@@ -1526,53 +1710,10 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 }, { capture: true })
 
 document.addEventListener('keydown', (e: KeyboardEvent) => {
-  if (currentScreen === 'mundial') {
-    if (handleMundialKey(e)) return
-    // handleMundialKey returned false: either back key or ArrowUp from the top row
-    const mundialBackBtn = document.getElementById('mundial-back-btn')
-    if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
-      e.preventDefault()
-      returnToGridFromMundial()
-    } else if (e.key === 'ArrowUp') {
-      // Top row reached — focus the back button in the Mundial header
-      e.preventDefault()
-      mundialBackBtn?.focus()
-    } else if (e.key === 'Enter' && document.activeElement === mundialBackBtn) {
-      e.preventDefault()
-      returnToGridFromMundial()
-    }
-    return
-  }
-
-  if (currentScreen === 'grid') {
-    // When the Mundial nav button in the header is focused, handle D-pad there
-    if (document.activeElement === mundialNavBtn) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        focusGridChannelRow(0)
-        return
-      }
-      if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
-        e.preventDefault()
-        focusGridChannelRow(0)
-        return
-      }
-      if (e.key === 'Enter') {
-        e.preventDefault()
-        void openMundialScreen()
-        return
-      }
-      return
-    }
-
+  if (currentScreen === 'categories') {
     if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
       e.preventDefault()
       const now = Date.now()
-      if (!isCurrentTimeVisible()) {
-        jumpToCurrentTime()
-        lastBackPressTime = now
-        return
-      }
       if (now - lastBackPressTime < DOUBLE_BACK_TIMEOUT) {
         void closeApp()
       } else {
@@ -1582,11 +1723,36 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
       return
     }
 
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault()
+      moveCategoryFocus(e.key)
+      return
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      categoryTiles[focusedCategoryTile]?.click()
+      return
+    }
+
+    return
+  }
+
+  if (currentScreen === 'grid') {
+    if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
+      e.preventDefault()
+      if (!isCurrentTimeVisible()) {
+        jumpToCurrentTime()
+        return
+      }
+      returnToCategories()
+      return
+    }
+
     if (e.key === 'ArrowUp') {
       e.preventDefault()
       if (focusedGridChannelRow === 0) {
-        // Escape upward to the Mundial button in the header
-        mundialNavBtn.focus()
+        returnToCategories()
       } else {
         moveGridChannelFocus(-1)
       }
@@ -1617,7 +1783,8 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 
     if (e.key === 'Enter') {
       e.preventDefault()
-      void openChannel(focusedGridChannelRow)
+      const channel = activeChannels[focusedGridChannelRow]
+      if (channel) void openChannel(channel, focusedGridChannelRow)
       return
     }
   }
@@ -1681,24 +1848,21 @@ guideItems.forEach((item, i) => {
 
 platformAPI.onBackButton(async () => {
   const now = Date.now()
-  if (currentScreen === 'mundial') {
-    if (!handleMundialKey(new KeyboardEvent('keydown', { key: 'Escape' }))) {
-      returnToGridFromMundial()
-    }
-    return
-  }
-  if (currentScreen === 'grid') {
-    if (!isCurrentTimeVisible()) {
-      jumpToCurrentTime()
-      lastBackPressTime = now
-      return
-    }
+  if (currentScreen === 'categories') {
     if (now - lastBackPressTime < DOUBLE_BACK_TIMEOUT) {
       await closeApp()
     } else {
       showBackPressTooltip()
     }
     lastBackPressTime = now
+    return
+  }
+  if (currentScreen === 'grid') {
+    if (!isCurrentTimeVisible()) {
+      jumpToCurrentTime()
+      return
+    }
+    returnToCategories()
   } else {
     if (isGuideOpen) {
       closeGuide()
@@ -1708,10 +1872,6 @@ platformAPI.onBackButton(async () => {
   }
 })
 
-mundialNavBtn.addEventListener('click', () => {
-  void openMundialScreen()
-})
-
-document.getElementById('screen-mundial')!.addEventListener('mundial:back', () => {
-  returnToGridFromMundial()
+categoriesBackBtn.addEventListener('click', () => {
+  returnToCategories()
 })
