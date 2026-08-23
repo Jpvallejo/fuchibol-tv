@@ -7,11 +7,19 @@ export interface PlayerCallbacks {
   onError: (message: string) => void
 }
 
+// Number of retries after the initial attempt before surfacing the error to the user
+// (i.e. up to MAX_RETRIES + 1 = 8 total attempts).
+const MAX_RETRIES = 7
+const RETRY_DELAY_MS = 1500
+
 export class ShakaPlayer {
   private player: shaka.Player | null = null
   private hls: HLS | null = null
   private video: HTMLVideoElement
   private callbacks: PlayerCallbacks
+  private retryCount = 0
+  private retryTimer: ReturnType<typeof setTimeout> | null = null
+  private loadToken = 0
 
   constructor(video: HTMLVideoElement, callbacks: PlayerCallbacks) {
     this.video = video
@@ -19,9 +27,44 @@ export class ShakaPlayer {
   }
 
   async load(channel: Channel): Promise<void> {
+    this.retryCount = 0
+    this.clearRetryTimer()
+    const token = ++this.loadToken
+    await this.attemptLoad(channel, token)
+  }
+
+  private clearRetryTimer(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+    }
+  }
+
+  // Called on any load/playback failure. Retries the same channel a few times
+  // (a fresh reload is often enough to recover from a transient source failure)
+  // before finally surfacing the error to the UI.
+  private handleFailure(channel: Channel, token: number, msg: string): void {
+    if (token !== this.loadToken) return // superseded by a newer load() call
+
+    this.retryCount++
+    if (this.retryCount <= MAX_RETRIES) {
+      console.warn(`[Player] Playback failed, retrying (${this.retryCount}/${MAX_RETRIES}): ${msg}`)
+      this.clearRetryTimer()
+      this.retryTimer = setTimeout(() => {
+        void this.attemptLoad(channel, token)
+      }, RETRY_DELAY_MS)
+    } else {
+      console.error(`[Player] Giving up after ${MAX_RETRIES} retries: ${msg}`)
+      this.callbacks.onError(msg || 'Error al reproducir el canal')
+    }
+  }
+
+  private async attemptLoad(channel: Channel, token: number): Promise<void> {
+    if (token !== this.loadToken) return
+
     this.callbacks.onLoading()
 
-    await this.destroyPlayer()
+    await this.cleanupMedia()
     this.video.crossOrigin = 'anonymous'
 
     try {
@@ -30,7 +73,7 @@ export class ShakaPlayer {
       if (channel.getLa14Url) {
         const la14Url = await channel.getLa14Url()
         if (!la14Url) {
-          this.callbacks.onError('Could not get LA14 playback URL')
+          this.handleFailure(channel, token, 'Could not get LA14 playback URL')
           return
         }
         manifestUrl = la14Url
@@ -66,7 +109,7 @@ export class ShakaPlayer {
         // Use Shaka Player for DASH streams
         console.log(`[Player] Using Shaka Player for DASH playback`)
         try {
-          await this.loadWithShaka(channel, manifestUrl)
+          await this.loadWithShaka(channel, manifestUrl, token)
         } catch (dashErr) {
           console.warn(`[Player] DASH failed for primary URL: ${dashErr}`)
           const fb = (channel as any).fallbackM3u8Url as string | undefined
@@ -80,11 +123,12 @@ export class ShakaPlayer {
       }
 
       console.log(`[Player] Successfully loaded: ${channel.id}`)
+      this.retryCount = 0
       this.callbacks.onLoaded()
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       console.error(`[Player] Error: ${msg}`)
-      this.callbacks.onError(msg || 'Error al reproducir el canal')
+      this.handleFailure(channel, token, msg)
     }
   }
 
@@ -128,17 +172,20 @@ export class ShakaPlayer {
     }
   }
 
-  private async loadWithShaka(channel: Channel, manifestUrl: string): Promise<void> {
+  private async loadWithShaka(channel: Channel, manifestUrl: string, token: number): Promise<void> {
     console.log(`[Player] loadWithShaka: ${manifestUrl}`)
 
     const player = new shaka.Player(this.video)
     this.player = player
 
+    // Fires for errors that happen mid-playback (not just during the initial load),
+    // e.g. the upstream source dropping suddenly. Reload the channel instead of
+    // immediately surfacing an error — a fresh reload usually recovers.
     player.addEventListener('error', (event: shaka.PlayerEvent) => {
       const detail = event.detail
       const msg = detail?.message ?? `Error code ${detail?.code ?? 'unknown'}`
       console.error(`[Player] Shaka error:`, msg)
-      this.callbacks.onError(msg)
+      this.handleFailure(channel, token, msg)
     })
 
     // Fetch Shaka setup from backend each time (manifest URLs are short-lived)
@@ -148,20 +195,17 @@ export class ShakaPlayer {
       setupResp = await fetch(setupUrl, { method: 'GET' })
     } catch (err) {
       console.error('[Player] Failed to fetch Shaka setup:', err)
-      this.callbacks.onError('Stream unavailable')
       throw new Error('Stream unavailable')
     }
 
     if (!setupResp.ok) {
       console.error('[Player] Shaka setup returned non-200:', setupResp.status)
-      this.callbacks.onError('Stream unavailable')
       throw new Error('Stream unavailable')
     }
 
     const data = await setupResp.json().catch((e) => ({ error: `invalid_json: ${e}` }))
     if (!data || data.error) {
       console.error('[Player] Shaka setup error:', data?.error ?? data)
-      this.callbacks.onError('Stream unavailable')
       throw new Error('Stream unavailable')
     }
 
@@ -204,11 +248,20 @@ export class ShakaPlayer {
 
     // All attempts failed
     console.error('[Player] All Shaka manifest loads failed')
-    this.callbacks.onError('Error al reproducir el canal')
     throw lastErr || new Error('Shaka load failed')
   }
 
+  // Fully stops playback and cancels any pending retry — used when navigating
+  // away from the player. Reusing this from within a retry attempt would
+  // invalidate the very token that attempt is running under, so retries use
+  // cleanupMedia() instead.
   async destroyPlayer(): Promise<void> {
+    this.loadToken++
+    this.clearRetryTimer()
+    await this.cleanupMedia()
+  }
+
+  private async cleanupMedia(): Promise<void> {
     if (this.player) {
       await this.player.destroy()
       this.player = null
