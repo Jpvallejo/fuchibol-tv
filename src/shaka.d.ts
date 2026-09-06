@@ -14,6 +14,8 @@ declare namespace shaka {
   class Player {
     constructor(video: HTMLVideoElement);
     configure(config: object): void;
+    configure(path: string, value: unknown): void;
+    getConfiguration(): Record<string, any>;
     load(manifestUri: string): Promise<void>;
     destroy(): Promise<void>;
     addEventListener(type: string, listener: (event: PlayerEvent) => void): void;

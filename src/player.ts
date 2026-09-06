@@ -31,6 +31,9 @@ const BUFFER_GOAL_SECONDS = isLowEndDevice() ? 60 : 30
 const REBUFFER_GOAL_SECONDS = isLowEndDevice() ? 6 : 3
 // Max rendition height a low-end device is allowed to play.
 const LOW_END_MAX_HEIGHT = 720
+// How far behind the live edge to sit. A cushion here is what lets a slow
+// device absorb a hiccup without the player having to catch up afterwards.
+const LIVE_EDGE_DELAY_SECONDS = 12
 
 export class ShakaPlayer {
   private player: shaka.Player | null = null
@@ -174,6 +177,11 @@ export class ShakaPlayer {
         // which is itself audible/visible as a skip.
         maxBufferHole: 0.5,
         nudgeMaxRetry: 10,
+        // Live: hold a few segments of cushion behind the live edge and never
+        // speed playback up to catch back up — that is heard as a 2x replay.
+        liveSyncDurationCount: 4,
+        liveMaxLatencyDurationCount: 30,
+        maxLiveSyncPlaybackRate: 1,
         xhrSetup: (xhr) => {
           xhr.withCredentials = false
           if (headers) {
@@ -293,18 +301,56 @@ export class ShakaPlayer {
 
     // Configure DASH DRM with returned clearKeys
     const lowEnd = isLowEndDevice()
-    player.configure({
-      drm: { clearKeys },
-      streaming: {
-        bufferingGoal: BUFFER_GOAL_SECONDS,
-        rebufferingGoal: REBUFFER_GOAL_SECONDS,
-        bufferBehind: 30,
-      },
-      abr: {
-        defaultBandwidthEstimate: lowEnd ? 1_000_000 : 3_000_000,
-        restrictions: lowEnd ? { maxHeight: LOW_END_MAX_HEIGHT } : {},
-      },
-    })
+    player.configure({ drm: { clearKeys } })
+
+    // Shaka is loaded from a floating CDN tag (shaka-player@4) and several of
+    // these keys moved or changed shape across 4.x, so apply each one only if
+    // the running build actually has it.
+    const shakaConfig = player.getConfiguration() as Record<string, any>
+    const hasConfigPath = (path: string): boolean => {
+      let node: any = shakaConfig
+      for (const part of path.split('.')) {
+        if (!node || typeof node !== 'object' || !(part in node)) return false
+        node = node[part]
+      }
+      return true
+    }
+    const configureIfSupported = (path: string, value: unknown): void => {
+      if (!hasConfigPath(path)) {
+        console.log(`[Player] Shaka build has no "${path}", skipping`)
+        return
+      }
+      player.configure(path, value)
+    }
+
+    configureIfSupported('streaming.bufferingGoal', BUFFER_GOAL_SECONDS)
+    configureIfSupported('streaming.rebufferingGoal', REBUFFER_GOAL_SECONDS)
+    configureIfSupported('streaming.bufferBehind', 30)
+
+    // These streams are live. Shaka's default reaction to falling behind is to
+    // jump the playhead forward and/or raise the playback rate to catch up to
+    // the live edge, which is what shows up as the stream "cutting" and then
+    // running at ~2x. Sit deliberately a few seconds behind the edge instead
+    // and let playback run at a normal rate.
+    configureIfSupported('streaming.stallSkip', 0)
+    configureIfSupported('manifest.defaultPresentationDelay', LIVE_EDGE_DELAY_SECONDS)
+    configureIfSupported('manifest.dash.autoCorrectDrift', true)
+    // Pre-4.9 shape: a boolean plus separate rate/latency knobs.
+    // 4.9+ shape: a single liveSync object.
+    if (typeof shakaConfig.streaming?.liveSync === 'object') {
+      configureIfSupported('streaming.liveSync.enabled', false)
+      configureIfSupported('streaming.liveSync.maxPlaybackRate', 1)
+      configureIfSupported('streaming.liveSync.minPlaybackRate', 1)
+      configureIfSupported('streaming.liveSync.panicMode', false)
+    } else {
+      configureIfSupported('streaming.liveSync', false)
+      configureIfSupported('streaming.liveSyncPlaybackRate', 1)
+    }
+
+    configureIfSupported('abr.defaultBandwidthEstimate', lowEnd ? 1_000_000 : 3_000_000)
+    if (lowEnd) {
+      configureIfSupported('abr.restrictions.maxHeight', LOW_END_MAX_HEIGHT)
+    }
 
     // Configure network request headers for fubohd.com URLs
     const isFuboHdSession = manifestUri && manifestUri.includes('fubohd.com')
