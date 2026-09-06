@@ -12,6 +12,26 @@ export interface PlayerCallbacks {
 const MAX_RETRIES = 7
 const RETRY_DELAY_MS = 1500
 
+// Older/low-end Android boxes tend to stutter ("skip") because the default
+// player settings buffer very little and let ABR pick a rendition the device
+// cannot decode in real time. We detect a weak device and both buffer more
+// aggressively and cap the quality it is allowed to select.
+function isLowEndDevice(): boolean {
+  const nav = navigator as Navigator & { deviceMemory?: number }
+  const cores = nav.hardwareConcurrency ?? 0
+  const memory = nav.deviceMemory ?? 0
+  if (cores > 0 && cores <= 4) return true
+  if (memory > 0 && memory <= 3) return true
+  return false
+}
+
+// Seconds of media to keep buffered ahead of the playhead.
+const BUFFER_GOAL_SECONDS = isLowEndDevice() ? 60 : 30
+// Seconds of media that must be buffered before playback (re)starts.
+const REBUFFER_GOAL_SECONDS = isLowEndDevice() ? 6 : 3
+// Max rendition height a low-end device is allowed to play.
+const LOW_END_MAX_HEIGHT = 720
+
 export class ShakaPlayer {
   private player: shaka.Player | null = null
   private hls: HLS | null = null
@@ -136,9 +156,24 @@ export class ShakaPlayer {
     console.log(`[Player] loadWithHls: ${manifestUrl}`)
 
     if (HLS.isSupported()) {
+      const lowEnd = isLowEndDevice()
       this.hls = new HLS({
         debug: false,
         lowLatencyMode: false,
+        // Buffering: keep a deep forward buffer so a slow network or a busy
+        // CPU does not immediately starve the decoder (the "skipping").
+        maxBufferLength: BUFFER_GOAL_SECONDS,
+        maxMaxBufferLength: BUFFER_GOAL_SECONDS * 2,
+        maxBufferSize: (lowEnd ? 30 : 60) * 1000 * 1000,
+        backBufferLength: 30,
+        // Start conservatively and let ABR climb, instead of opening on a
+        // rendition the device may not be able to decode.
+        startLevel: lowEnd ? 0 : -1,
+        capLevelToPlayerSize: lowEnd,
+        // Be more patient about stalls before nudging/seeking the playhead,
+        // which is itself audible/visible as a skip.
+        maxBufferHole: 0.5,
+        nudgeMaxRetry: 10,
         xhrSetup: (xhr) => {
           xhr.withCredentials = false
           if (headers) {
@@ -146,17 +181,60 @@ export class ShakaPlayer {
           }
         },
       })
-      this.hls.loadSource(manifestUrl)
-      this.hls.attachMedia(this.video)
+      const hls = this.hls
+      hls.loadSource(manifestUrl)
+      hls.attachMedia(this.video)
+
+      if (lowEnd) {
+        hls.once(HLS.Events.MANIFEST_PARSED, () => {
+          const maxAllowed = hls.levels.reduce(
+            (best, level, index) =>
+              level.height && level.height <= LOW_END_MAX_HEIGHT && (best < 0 || level.height > hls.levels[best].height!)
+                ? index
+                : best,
+            -1,
+          )
+          if (maxAllowed >= 0) {
+            console.log(`[Player] Low-end device: capping HLS level to ${hls.levels[maxAllowed].height}p`)
+            hls.autoLevelCapping = maxAllowed
+          }
+        })
+      }
 
       return new Promise((resolve, reject) => {
-        this.hls!.once(HLS.Events.MANIFEST_PARSED, () => {
+        let loaded = false
+
+        hls.once(HLS.Events.MANIFEST_PARSED, () => {
           console.log(`[Player] HLS manifest parsed`)
+          loaded = true
           resolve()
         })
-        this.hls!.once(HLS.Events.ERROR, (_event: any, data: any) => {
-          console.error(`[Player] HLS error:`, data)
-          reject(new Error(`HLS Error: ${data.type} - ${data.details}`))
+
+        // Stays attached for the whole session: once playback has started, a
+        // network/media error should be recovered in place rather than tearing
+        // the stream down, which is what users perceive as a skip.
+        hls.on(HLS.Events.ERROR, (_event: any, data: any) => {
+          if (!data.fatal) {
+            console.warn(`[Player] HLS non-fatal error: ${data.details}`)
+            return
+          }
+          console.error(`[Player] HLS fatal error:`, data)
+          if (!loaded) {
+            reject(new Error(`HLS Error: ${data.type} - ${data.details}`))
+            return
+          }
+          switch (data.type) {
+            case HLS.ErrorTypes.NETWORK_ERROR:
+              console.warn('[Player] Recovering from HLS network error')
+              hls.startLoad()
+              break
+            case HLS.ErrorTypes.MEDIA_ERROR:
+              console.warn('[Player] Recovering from HLS media error')
+              hls.recoverMediaError()
+              break
+            default:
+              hls.destroy()
+          }
         })
       })
     } else if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -214,7 +292,19 @@ export class ShakaPlayer {
     const clearKeys: Record<string, string> = data.clearKeys || {}
 
     // Configure DASH DRM with returned clearKeys
-    player.configure({ drm: { clearKeys } })
+    const lowEnd = isLowEndDevice()
+    player.configure({
+      drm: { clearKeys },
+      streaming: {
+        bufferingGoal: BUFFER_GOAL_SECONDS,
+        rebufferingGoal: REBUFFER_GOAL_SECONDS,
+        bufferBehind: 30,
+      },
+      abr: {
+        defaultBandwidthEstimate: lowEnd ? 1_000_000 : 3_000_000,
+        restrictions: lowEnd ? { maxHeight: LOW_END_MAX_HEIGHT } : {},
+      },
+    })
 
     // Configure network request headers for fubohd.com URLs
     const isFuboHdSession = manifestUri && manifestUri.includes('fubohd.com')
