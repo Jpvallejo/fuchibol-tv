@@ -12,6 +12,13 @@ export interface PlayerCallbacks {
 const MAX_RETRIES = 7
 const RETRY_DELAY_MS = 1500
 
+// Target forward buffer for DASH/Shaka channels. Deliberately generous (vs. the
+// live edge) so there's always backlog for the manual speed-up control to burn
+// through — a tiny buffering goal leaves nothing for 2x playback to consume
+// before it hits the live edge itself. See ShakaPlayer.getLiveGapSeconds().
+const SHAKA_BUFFERING_GOAL_SECONDS = 30
+const SHAKA_REBUFFERING_GOAL_SECONDS = 2
+
 export class ShakaPlayer {
   private player: shaka.Player | null = null
   private hls: HLS | null = null
@@ -213,8 +220,15 @@ export class ShakaPlayer {
     const fallbackManifests: string[] = Array.isArray(data.fallbackManifests) ? data.fallbackManifests : []
     const clearKeys: Record<string, string> = data.clearKeys || {}
 
-    // Configure DASH DRM with returned clearKeys
-    player.configure({ drm: { clearKeys } })
+    // Configure DASH DRM with returned clearKeys, and a tight buffering target
+    // so the player stays close to the live edge instead of drifting 20-30s behind.
+    player.configure({
+      drm: { clearKeys },
+      streaming: {
+        bufferingGoal: SHAKA_BUFFERING_GOAL_SECONDS,
+        rebufferingGoal: SHAKA_REBUFFERING_GOAL_SECONDS,
+      },
+    })
 
     // Configure network request headers for fubohd.com URLs
     const isFuboHdSession = manifestUri && manifestUri.includes('fubohd.com')
@@ -249,6 +263,35 @@ export class ShakaPlayer {
     // All attempts failed
     console.error('[Player] All Shaka manifest loads failed')
     throw lastErr || new Error('Shaka load failed')
+  }
+
+  // Sets playback speed. For DASH/Shaka channels this goes through Shaka's
+  // trick-play API rather than poking video.playbackRate directly — trickPlay
+  // tells Shaka's ABR/buffering logic that consumption is faster now, so it
+  // can drop to a lower bitrate variant and prefetch harder to avoid starving
+  // the buffer. HLS channels (hls.js, no Shaka player instance) fall back to
+  // setting playbackRate directly.
+  setPlaybackRate(rate: number): void {
+    if (this.player) {
+      // Diagnostic: confirms how much live-edge gap was actually available to
+      // spend at the moment speed changed — trick-play can never play past
+      // seekRange().end, so this bounds what's achievable regardless of
+      // bufferingGoal. Remove once we've confirmed the real numbers.
+      try {
+        const range = this.player.seekRange()
+        console.log(`[Player] setPlaybackRate(${rate}): live gap = ${(range.end - this.video.currentTime).toFixed(2)}s`)
+      } catch {
+        // Ignore — diagnostic only.
+      }
+
+      if (rate === 1) {
+        this.player.cancelTrickPlay()
+      } else {
+        this.player.trickPlay(rate)
+      }
+    } else {
+      this.video.playbackRate = rate
+    }
   }
 
   // Fully stops playback and cancels any pending retry — used when navigating

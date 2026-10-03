@@ -18,6 +18,9 @@ declare namespace shaka {
     destroy(): Promise<void>;
     addEventListener(type: string, listener: (event: PlayerEvent) => void): void;
     getNetworkingEngine(): shaka.net.NetworkingEngine;
+    trickPlay(rate: number): void;
+    cancelTrickPlay(): void;
+    seekRange(): { start: number; end: number };
   }
 
   namespace net {

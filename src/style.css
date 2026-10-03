@@ -699,6 +699,16 @@ button {
   animation: pulse 1.8s ease-in-out infinite;
 }
 
+.overlay-speed-badge {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
 /* ===== Guide Overlay ===== */
 .guide-overlay {
   position: absolute;

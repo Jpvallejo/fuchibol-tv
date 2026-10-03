@@ -232,6 +232,7 @@ const errorOverlay = document.getElementById('error-overlay')!
 const errorMessage = document.getElementById('error-message')!
 const playerOverlay = document.getElementById('player-overlay')!
 const overlayChannelName = document.getElementById('overlay-channel-name')!
+const overlaySpeedBadge = document.getElementById('overlay-speed-badge')!
 const overlayChannelNumber = document.getElementById('overlay-channel-number')!
 const guideOverlay = document.getElementById('guide-overlay')!
 const guideList = document.getElementById('guide-list')!
@@ -1106,6 +1107,36 @@ function resetOverlayTimer(): void {
   overlayTimer = setTimeout(hideOverlay, 5000)
 }
 
+// Lets viewers with a fast connection catch up to the live edge (ArrowRight
+// speeds up, ArrowLeft slows back down to normal) without a jarring seek —
+// min is 1x since slowing below normal only increases live delay further.
+const PLAYBACK_SPEED_STEP = 0.25
+const PLAYBACK_SPEED_MIN = 1
+const PLAYBACK_SPEED_MAX = 2
+
+function updateSpeedBadge(): void {
+  if (video.playbackRate === 1) {
+    overlaySpeedBadge.hidden = true
+    overlaySpeedBadge.textContent = ''
+  } else {
+    overlaySpeedBadge.hidden = false
+    overlaySpeedBadge.textContent = `${video.playbackRate.toFixed(2)}x`
+  }
+}
+
+function changePlaybackSpeed(delta: number): void {
+  const next = Math.round((video.playbackRate + delta) * 100) / 100
+  const clamped = Math.min(PLAYBACK_SPEED_MAX, Math.max(PLAYBACK_SPEED_MIN, next))
+  shakaPlayer.setPlaybackRate(clamped)
+  updateSpeedBadge()
+  showOverlay()
+}
+
+function resetPlaybackSpeed(): void {
+  shakaPlayer.setPlaybackRate(1)
+  updateSpeedBadge()
+}
+
 type Screen = 'categories' | 'grid' | 'player'
 let currentScreen: Screen = 'categories'
 let gridNavigation: GridNavigation | null = null
@@ -1594,6 +1625,7 @@ async function openChannel(channel: typeof channels[number], rowIndex?: number):
 
   showScreen('player')
   hideOverlay()
+  resetPlaybackSpeed()
 
   await shakaPlayer.load(channel)
 }
@@ -1809,6 +1841,16 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'ChannelDown' || e.key === 'ArrowDown') {
         e.preventDefault()
         void channelDown()
+        return
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        changePlaybackSpeed(PLAYBACK_SPEED_STEP)
+        return
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        changePlaybackSpeed(-PLAYBACK_SPEED_STEP)
         return
       }
     }
