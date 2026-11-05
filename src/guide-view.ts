@@ -1,10 +1,10 @@
-// Guide screen: category rail on the left, a "now playing" hero for the focused
-// channel, and a grid of channel cards. Owns its own DOM, D-pad focus and the
+// Guide screen: category rail on the left and a grid of channel cards showing
+// what's on now. Owns its own DOM, D-pad focus and the
 // +18 age gate; main.ts feeds it data and decides what opening a channel means.
 //
 // Built for low-end TV hardware: cards are cloned from a template in one
-// fragment, logos are lazy <img>s, focus changes only touch two cards and the
-// hero text, and only transform/opacity are animated.
+// fragment, logos are lazy <img>s, focus changes only touch two cards, and
+// only transform/opacity are animated.
 import { ADULT_CATEGORY, CATEGORY_ORDER, type ChannelCategoryV2, type ChannelV2 } from './channels-v2'
 
 export interface NowPlaying {
@@ -20,6 +20,8 @@ export interface GuideViewOptions {
   getNowPlaying: (channel: ChannelV2) => NowPlaying | null
   getLogoUrl: (channel: ChannelV2) => string | null
   onOpenChannel: (channel: ChannelV2) => void
+  // Cards that scrolled into (or near) view, so their program info can be loaded lazily.
+  onCardsVisible?: (channels: ChannelV2[]) => void
   // Back pressed with nothing left to close (rail focused): main decides (exit prompt).
   onBackAtRoot: () => void
 }
@@ -94,10 +96,6 @@ export class GuideView {
   private readonly sectionCount: HTMLElement
   private readonly clockEl: HTMLElement
   private readonly dateEl: HTMLElement
-  private readonly hero: {
-    root: HTMLElement, logo: HTMLImageElement, initials: HTMLElement, number: HTMLElement, name: HTMLElement,
-    title: HTMLElement, meta: HTMLElement, time: HTMLElement, bar: HTMLElement
-  }
   private readonly gate: { root: HTMLElement, buttons: HTMLButtonElement[] }
 
   private zone: Zone = 'grid'
@@ -108,6 +106,8 @@ export class GuideView {
   private adultUnlocked = false
   private gateFocus = 0
   private timers: ReturnType<typeof setInterval>[] = []
+  private readonly cardChannel = new WeakMap<Element, ChannelV2>()
+  private readonly visibilityObserver: IntersectionObserver | null
 
   constructor(opts: GuideViewOptions) {
     this.opts = opts
@@ -137,17 +137,6 @@ export class GuideView {
       <div class="gv-body">
         <nav class="gv-rail" aria-label="Categorías"></nav>
         <main class="gv-main">
-          <section class="gv-hero" aria-live="polite">
-            <div class="gv-hero-logo"><img alt="" decoding="async"><span class="gv-initials"></span></div>
-            <div class="gv-hero-info">
-              <div class="gv-hero-channel"><span class="gv-hero-number"></span><span class="gv-hero-name"></span></div>
-              <div class="gv-hero-live">Ahora</div>
-              <h1 class="gv-hero-title"></h1>
-              <p class="gv-hero-meta"></p>
-              <div class="gv-hero-time"><span></span><span class="gv-hero-bar"><i></i></span></div>
-            </div>
-            <div class="gv-hero-hint"><kbd>OK</kbd> Ver canal</div>
-          </section>
           <div class="gv-section"><h2 class="gv-section-title"></h2><span class="gv-section-count"></span></div>
           <div class="gv-grid-scroller"><div class="gv-grid" role="grid"></div></div>
         </main>
@@ -172,18 +161,18 @@ export class GuideView {
     this.sectionCount = q('.gv-section-count')
     this.clockEl = q('.gv-clock')
     this.dateEl = q('.gv-date')
-    this.hero = {
-      root: q('.gv-hero'),
-      logo: q('.gv-hero-logo img'),
-      initials: q('.gv-hero-logo .gv-initials'),
-      number: q('.gv-hero-number'),
-      name: q('.gv-hero-name'),
-      title: q('.gv-hero-title'),
-      meta: q('.gv-hero-meta'),
-      time: q('.gv-hero-time span'),
-      bar: q('.gv-hero-bar i'),
-    }
     this.gate = { root: q('.gv-gate'), buttons: Array.from(root.querySelectorAll<HTMLButtonElement>('.gv-gate-btn')) }
+
+    // Pre-load a screen's worth below the fold so scrolling doesn't show blanks.
+    this.visibilityObserver = opts.onCardsVisible && 'IntersectionObserver' in window
+      ? new IntersectionObserver((entries) => {
+        const channels = entries
+          .filter((entry) => entry.isIntersecting)
+          .map((entry) => this.cardChannel.get(entry.target))
+          .filter((channel): channel is ChannelV2 => !!channel)
+        if (channels.length > 0) opts.onCardsVisible!(channels)
+      }, { root: this.gridScroller, rootMargin: '600px 0px' })
+      : null
 
     const rail = q<HTMLElement>('.gv-rail')
     this.categories.forEach((category, index) => {
@@ -241,10 +230,9 @@ export class GuideView {
     this.applyFocus()
   }
 
-  // Re-reads now-playing info for the rendered cards and the hero (no re-render).
+  // Re-reads now-playing info for the rendered cards (no re-render).
   refreshPrograms(): void {
     this.cards.forEach((card, i) => this.fillCardProgram(card, this.visible[i]))
-    this.updateHero()
   }
 
   // Returns true when the key was consumed.
@@ -324,7 +312,6 @@ export class GuideView {
 
   private setCardFocus(index: number): void {
     this.cardIndex = index
-    this.updateHero()
     this.applyFocus()
   }
 
@@ -369,11 +356,18 @@ export class GuideView {
     }
     this.gridEl.replaceChildren(fragment)
     this.gridScroller.scrollTop = 0
-    this.updateHero()
+
+    if (this.visibilityObserver) {
+      this.visibilityObserver.disconnect()
+      this.cards.forEach((card) => this.visibilityObserver!.observe(card))
+    } else {
+      this.opts.onCardsVisible?.(this.visible)
+    }
   }
 
   private buildCard(channel: ChannelV2): HTMLButtonElement {
     const card = cardTemplate.cloneNode(true) as HTMLButtonElement
+    this.cardChannel.set(card, channel)
     card.style.setProperty('--c', channel.color)
     this.setLogo(card.querySelector('img')!, card.querySelector('.gv-initials')!, channel)
     card.querySelector('.gv-card-name')!.textContent = channel.name
@@ -401,25 +395,6 @@ export class GuideView {
     } else {
       img.removeAttribute('src')
     }
-  }
-
-  private updateHero(): void {
-    const channel = this.visible[this.cardIndex]
-    const h = this.hero
-    h.root.hidden = !channel
-    if (!channel) return
-
-    h.root.style.setProperty('--c', channel.color)
-    this.setLogo(h.logo, h.initials, channel)
-    h.number.textContent = channel.number ? String(channel.number) : ''
-    h.name.textContent = channel.name
-
-    const info = this.opts.getNowPlaying(channel)
-    h.root.classList.toggle('no-program', !info)
-    h.title.textContent = info?.title ?? 'Programación no disponible'
-    h.meta.textContent = info?.meta ?? ''
-    h.time.textContent = info?.timeRange ?? ''
-    h.bar.style.transform = `scaleX(${info?.progress ?? 0})`
   }
 
   private updateClock(): void {
