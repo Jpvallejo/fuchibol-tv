@@ -9,7 +9,8 @@
 // is what the player sends to get-shaka-setup. The card info (name, number,
 // logo, color, guide data) comes from the ./channels definition with the same
 // id, or from the one named in DISPLAY_ALIASES when ./channels spells it
-// differently. Ids with neither are skipped (no card info to show).
+// differently. Ids with neither get a generated card (name derived from the
+// id, no logo) so every channel in the list is visible.
 import { channels as legacyChannels, type Channel } from './channels'
 
 export type ChannelCategoryV2 =
@@ -302,12 +303,39 @@ const DISPLAY_ALIASES: Record<string, string> = {
 
 const definitionsById = new Map(legacyChannels.map((channel) => [channel.id, channel]))
 
-const resolved: ChannelV2[] = []
-for (const [id, category] of Object.entries(CHANNEL_CATEGORIES)) {
-  const definition = definitionsById.get(id) ?? definitionsById.get(DISPLAY_ALIASES[id] ?? '')
-  if (definition) resolved.push({ ...definition, id, category })
+// 'Canal_5_Rosario' -> 'Canal 5 Rosario', 'TNT_HD_Arg' -> 'TNT HD Arg'
+function nameFromId(id: string): string {
+  return id.replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+// Card for an id with no ./channels definition. number 0 = "no channel number"
+// (hidden in the UI, sorted after numbered channels).
+function generatedChannel(id: string, category: ChannelCategoryV2): ChannelV2 {
+  const name = nameFromId(id)
+  return {
+    id,
+    name,
+    shortName: name,
+    color: '#64748b',
+    movistarNumber: 0,
+    number: 0,
+    image: null,
+    keyId: '',
+    key: '',
+    getManifestUrl: () => '',
+    category,
+  }
+}
+
+const resolved: ChannelV2[] = Object.entries(CHANNEL_CATEGORIES).map(([id, category]) => {
+  const definition = definitionsById.get(id) ?? definitionsById.get(DISPLAY_ALIASES[id] ?? '')
+  return definition ? { ...definition, id, category } : generatedChannel(id, category)
+})
+
+const sortNumber = (channel: ChannelV2) => channel.number || Number.MAX_SAFE_INTEGER
+
 export const channels: ChannelV2[] = resolved.sort((a, b) =>
-  CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || a.number - b.number,
+  CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)
+    || sortNumber(a) - sortNumber(b)
+    || a.name.localeCompare(b.name),
 )

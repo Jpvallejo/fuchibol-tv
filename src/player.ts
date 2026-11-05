@@ -2,7 +2,15 @@ import type { Channel as LegacyChannel } from './channels'
 
 // Accepts both v1 and v2 channel shapes (v2 uses its own category set).
 type Channel = Omit<LegacyChannel, 'category'> & { category?: string }
-import HLS from 'hls.js'
+import type HLS from 'hls.js'
+
+// hls.js is only needed for the few HLS streams, so it's loaded on first use
+// instead of being part of the startup bundle.
+let hlsModule: Promise<typeof import('hls.js')> | null = null
+function loadHlsJs(): Promise<typeof import('hls.js')> {
+  hlsModule ??= import('hls.js')
+  return hlsModule
+}
 
 export interface PlayerCallbacks {
   onLoading: () => void
@@ -145,6 +153,7 @@ export class ShakaPlayer {
   private async loadWithHls(manifestUrl: string, headers?: Record<string, string>): Promise<void> {
     console.log(`[Player] loadWithHls: ${manifestUrl}`)
 
+    const { default: HLS } = await loadHlsJs()
     if (HLS.isSupported()) {
       this.hls = new HLS({
         debug: false,

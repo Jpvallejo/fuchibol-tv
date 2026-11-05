@@ -1,11 +1,11 @@
 import { channels as allChannels, ADULT_CATEGORY, type ChannelV2 } from './channels-v2'
+import { GuideView, type NowPlaying } from './guide-view'
 import { ShakaPlayer } from './player'
 import { checkForUpdates } from './update-checker'
 import { showUpdateModal } from './update-modal'
 
-// Everything except the +18 category. Used for the full guide, the in-player
-// guide and channel surfing, so adult channels are only reachable through
-// their own (age-gated) category.
+// Everything except the +18 category. Used for the in-player channel list, so
+// adult channels are only reachable through their own (age-gated) category.
 const channels = allChannels.filter((channel) => channel.category !== ADULT_CATEGORY)
 
 // Platform abstraction for Android (Capacitor) and Tizen
@@ -129,7 +129,10 @@ const CONTENT_API_FIELDS = 'Pid,Title,Description,ChannelName,ChannelNumber,Call
 const CONTENT_API_RELATIONS = 'Genre'
 const CONTENT_API_ATTRIBUTES = 'ca_cpvrDisable,ca_descriptors,ca_blackout_target,ca_blackout_areas'
 const CONTENT_API_ORDER = 'START_TIME:a'
-const CONTENT_API_CHUNK_DELAY_MS = 120
+const CONTENT_API_CONCURRENCY = 3
+const CONTENT_API_TIMEOUT_MS = 8000
+// Next day's guide is prefetched after startup has settled, not during it.
+const NEXT_DAY_PREFETCH_DELAY_MS = 30 * 1000
 
 const CHANNEL_PID_CHUNKS: string[][] = [
   ['lch3339', 'lch3075', 'lch3077', 'lch3346', 'lch3337', 'lch3983', 'lch3338', 'lch3267', 'lch3340', 'lch6358'],
@@ -156,14 +159,9 @@ interface CachedGuideDay extends GuideDayPayload {
   expiresAt: string
 }
 
-const screenCategories = document.getElementById('screen-categories')!
-const screenGrid = document.getElementById('screen-grid')!
+const screenGuide = document.getElementById('screen-guide')!
 const screenPlayer = document.getElementById('screen-player')!
 const gridLoadingOverlay = document.getElementById('grid-loading')!
-const channelGrid = document.getElementById('channel-grid')!
-const categoriesGrid = document.getElementById('categories-grid')!
-const categoriesBackBtn = document.getElementById('categories-back-btn')!
-const gridCategoryLabel = document.getElementById('grid-category-label')!
 const video = document.getElementById('video') as HTMLVideoElement
 const loadingSpinner = document.getElementById('loading-spinner')!
 const loadingLogo = document.getElementById('loading-logo') as HTMLElement
@@ -194,27 +192,6 @@ function showBackPressTooltip(): void {
 
 async function closeApp(): Promise<void> {
   await platformAPI.closeApp()
-}
-
-// Number of channel cards per row in the "now playing" grid. Kept fixed
-// (the TV viewport is a fixed 1920px wide) so D-pad navigation can do simple
-// row/column math instead of measuring layout.
-const NOW_GRID_COLUMNS = 5
-const NOW_GRID_REFRESH_MS = 60 * 1000
-
-const nowGrid = document.createElement('div')
-nowGrid.className = 'now-grid'
-nowGrid.setAttribute('role', 'grid')
-channelGrid.replaceChildren(nowGrid)
-
-function setChannelLogos(logoMap: Record<number, string>): void {
-  channels.forEach((ch) => {
-    const logoUrl = ch.image ?? logoMap[ch.number]
-    const logoEl = document.getElementById(`grid-logo-${ch.id}`)
-    if (logoUrl && logoEl instanceof HTMLElement) {
-      logoEl.style.backgroundImage = `url('${logoUrl}')`
-    }
-  })
 }
 
 function parseHourToMinutes(value: string): number | null {
@@ -304,12 +281,29 @@ function buildProxiedContentApiUrls(startTime: number, endTime: number, liveChan
   ]
 }
 
-async function fetchContentApiChunk(startTime: number, endTime: number, liveChannelPids: string[]): Promise<ContentApiItem[]> {
+// Proxy indexes in the order to try them. The last proxy that worked moves to
+// the front, so after the first chunk the rest skip the dead ones.
+const proxyOrder = [0, 1, 2]
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// null = every proxy failed (as opposed to [] = a proxy answered with no items).
+async function fetchContentApiChunk(startTime: number, endTime: number, liveChannelPids: string[]): Promise<ContentApiItem[] | null> {
   const sources = buildProxiedContentApiUrls(startTime, endTime, liveChannelPids)
 
-  for (const source of sources) {
+  for (const proxyIndex of [...proxyOrder]) {
+    const source = sources[proxyIndex]
+    if (!source) continue
     try {
-      const res = await fetch(source, {
+      const res = await fetchWithTimeout(source, {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -317,9 +311,11 @@ async function fetchContentApiChunk(startTime: number, endTime: number, liveChan
           'Cache-Control': 'no-cache',
           Pragma: 'no-cache',
         },
-      })
+      }, CONTENT_API_TIMEOUT_MS)
 
       if (!res.ok) continue
+      proxyOrder.splice(proxyOrder.indexOf(proxyIndex), 1)
+      proxyOrder.unshift(proxyIndex)
 
       const data = await res.json() as { Content?: ContentApiItem[]; Items?: ContentApiItem[]; items?: ContentApiItem[]; Results?: ContentApiItem[] } | ContentApiItem[]
       if (Array.isArray(data)) return data
@@ -332,7 +328,7 @@ async function fetchContentApiChunk(startTime: number, endTime: number, liveChan
     }
   }
 
-  return []
+  return null
 }
 
 function getGuideUtcDayKey(dayOffset = 0): string {
@@ -408,7 +404,8 @@ function mergeMovistarScheduleCache(
     schedule: cached?.schedule ?? {},
     logoMap: logoMapOverride ?? cached?.logoMap ?? {},
   }
-  writeGuideDayCache(dayKey, payload)
+  // Never cache an empty guide: a failed fetch would otherwise stick for the whole day.
+  if (Object.keys(payload.movistarSchedule).length > 0) writeGuideDayCache(dayKey, payload)
   return payload
 }
 
@@ -419,12 +416,6 @@ function getChannelPrograms(channel: typeof channels[number]): GuideProgram[] {
   }
   // Fallback to schedule keyed by internal number
   return liveSchedule[channel.number] ?? []
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
 }
 
 function getCurrentProgram(programs: GuideProgram[], nowMinutes: number): GuideProgram | null {
@@ -534,7 +525,7 @@ async function fetchGuideSchedule(): Promise<void> {
   const cachedToday = readGuideDayCache(todayKey)
   let todayPayload: GuideDayPayload
 
-  if (!cachedToday) {
+  if (!cachedToday || Object.keys(cachedToday.movistarSchedule ?? {}).length === 0) {
     todayPayload = await fetchGuideScheduleByDay(0)
   } else {
     todayPayload = cachedToday
@@ -543,11 +534,10 @@ async function fetchGuideSchedule(): Promise<void> {
   liveGuideLogoMap = todayPayload.logoMap
   liveMovistarSchedule = todayPayload.movistarSchedule
   liveSchedule = todayPayload.schedule
-  setChannelLogos(liveGuideLogoMap)
 
   // Fetch next day if not cached
   if (!readGuideDayCache(nextDayKey)) {
-    void fetchGuideScheduleByDay(1)
+    setTimeout(() => void fetchGuideScheduleByDay(1), NEXT_DAY_PREFETCH_DELAY_MS)
   }
 
 }
@@ -557,16 +547,7 @@ async function fetchGuideScheduleFromHtml(dayOffset = 0): Promise<{ schedule: Re
   const schedule: Record<number, GuideProgram[]> = {}
   const channelNameIndex = buildChannelNameIndex()
 
-  for (const chunk of CHANNEL_PID_CHUNKS) {
-    let items: ContentApiItem[] = []
-
-    try {
-      items = await fetchContentApiChunk(range.start, range.end, chunk)
-    } catch {
-      items = []
-    }
-
-    items.forEach((item) => {
+  const addItems = (items: ContentApiItem[]) => items.forEach((item) => {
       const channelNumberValue = typeof item.ChannelNumber === 'number'
         ? item.ChannelNumber
         : Number.isFinite(Number(item.ChannelNumber))
@@ -589,10 +570,20 @@ async function fetchGuideScheduleFromHtml(dayOffset = 0): Promise<{ schedule: Re
       }
 
       schedule[channelNumber].push({ start, end, title })
-    })
+  })
 
-    await sleep(CONTENT_API_CHUNK_DELAY_MS)
-  }
+  // A few chunks in flight at once instead of one at a time. If a chunk fails
+  // on every proxy, the source is down: stop instead of firing the rest.
+  let next = 0
+  let sourceDown = false
+  await Promise.all(Array.from({ length: CONTENT_API_CONCURRENCY }, async () => {
+    while (!sourceDown && next < CHANNEL_PID_CHUNKS.length) {
+      const chunk = CHANNEL_PID_CHUNKS[next++]
+      const items = await fetchContentApiChunk(range.start, range.end, chunk).catch(() => null)
+      if (items === null) sourceDown = true
+      else addItems(items)
+    }
+  }))
 
   Object.values(schedule).forEach((programs) => {
     programs.sort((a, b) => a.start.localeCompare(b.start))
@@ -716,469 +707,93 @@ function resetPlaybackSpeed(): void {
   updateSpeedBadge()
 }
 
-type Screen = 'categories' | 'grid' | 'player'
-let currentScreen: Screen = 'categories'
-let nowGridCards: HTMLButtonElement[] = []
-let focusedGridCard = 0
-let nowGridRefreshTimer: ReturnType<typeof setInterval> | null = null
+type Screen = 'guide' | 'player'
+let currentScreen: Screen = 'guide'
 let currentChannelIndex = 0
 let currentChannel: ChannelV2 | null = null
 
-type CategoryFilter = NonNullable<typeof channels[number]['category']> | 'ALL'
-let activeChannels: typeof channels = []
-let currentCategoryFilter: CategoryFilter | null = null
+function getNowPlaying(channel: ChannelV2): NowPlaying | null {
+  const nowMinutes = getArgentinaNowMinutes()
+  const frames = [nowMinutes - GRID_WIDTH_MINUTES, nowMinutes, nowMinutes + GRID_WIDTH_MINUTES]
+  for (const program of normalizeProgramsInSourceOrder(getChannelPrograms(channel))) {
+    // "now" expressed in the program's day frame (programs can span midnight)
+    const frameNow = frames.find((minutes) => minutes >= program.startMinutes && minutes < program.endMinutes)
+    if (frameNow === undefined) continue
+    const duration = program.endMinutes - program.startMinutes
+    const { title, meta } = splitProgramLabel(program.title)
+    return {
+      title,
+      meta,
+      timeRange: `${program.start} - ${program.end}`,
+      progress: duration > 0 ? Math.min(1, Math.max(0, (frameNow - program.startMinutes) / duration)) : 0,
+    }
+  }
+  return null
+}
+
+function handleExitRequest(): void {
+  const now = Date.now()
+  if (now - lastBackPressTime < DOUBLE_BACK_TIMEOUT) {
+    void closeApp()
+  } else {
+    showBackPressTooltip()
+  }
+  lastBackPressTime = now
+}
+
+const guideView = new GuideView({
+  root: screenGuide,
+  channels: allChannels,
+  getNowPlaying,
+  getLogoUrl: (channel) => channel.image ?? liveGuideLogoMap[channel.number] ?? null,
+  onOpenChannel: (channel) => void openChannel(channel),
+  onBackAtRoot: handleExitRequest,
+})
 
 function showScreen(screen: Screen): void {
   currentScreen = screen
-  screenCategories.classList.toggle('active', screen === 'categories')
-  screenGrid.classList.toggle('active', screen === 'grid')
+  screenGuide.classList.toggle('active', screen === 'guide')
   screenPlayer.classList.toggle('active', screen === 'player')
-
-  if (screen === 'categories') {
-    focusCategoryTile(focusedCategoryTile)
-  }
-  if (screen === 'grid') {
-    focusGridCard(focusedGridCard)
-    startNowGridRefresh()
-  } else {
-    stopNowGridRefresh()
-  }
+  if (screen === 'guide') guideView.show()
+  else guideView.hide()
 }
 
-function enterGrid(filter: CategoryFilter): void {
-  focusedGridCard = 0
-  renderNowGrid(filter)
-  showScreen('grid')
-}
-
-function returnToCategories(): void {
-  showScreen('categories')
-}
-
-function focusGridCard(index: number): void {
-  if (nowGridCards.length === 0) return
-
-  const clamped = Math.min(Math.max(index, 0), nowGridCards.length - 1)
-  focusedGridCard = clamped
-
-  nowGridCards.forEach((card, i) => {
-    card.classList.toggle('focused', i === clamped)
-  })
-
-  const target = nowGridCards[clamped]
-  target?.focus({ preventScroll: true })
-  target?.scrollIntoView({ block: 'nearest' })
-}
-
-// Returns false when the move would leave the grid (so the caller can decide
-// what that means, e.g. ArrowUp on the first row goes back to categories).
-function moveGridCardFocus(key: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight'): boolean {
-  if (nowGridCards.length === 0) return false
-  const col = focusedGridCard % NOW_GRID_COLUMNS
-
-  if (key === 'ArrowUp') {
-    if (focusedGridCard < NOW_GRID_COLUMNS) return false
-    focusGridCard(focusedGridCard - NOW_GRID_COLUMNS)
-    return true
-  }
-  if (key === 'ArrowDown') {
-    const lastRowStart = Math.floor((nowGridCards.length - 1) / NOW_GRID_COLUMNS) * NOW_GRID_COLUMNS
-    if (focusedGridCard >= lastRowStart) return false
-    // Partial last row: land on its last card rather than doing nothing.
-    focusGridCard(Math.min(focusedGridCard + NOW_GRID_COLUMNS, nowGridCards.length - 1))
-    return true
-  }
-  if (key === 'ArrowLeft') {
-    if (col === 0) return false
-    focusGridCard(focusedGridCard - 1)
-    return true
-  }
-  if (col === NOW_GRID_COLUMNS - 1 || focusedGridCard + 1 >= nowGridCards.length) return false
-  focusGridCard(focusedGridCard + 1)
-  return true
-}
-
-// ===== +18 disclaimer =====
-// Shown every time the adult category is entered from the category picker.
-
-const adultGate = document.createElement('div')
-adultGate.className = 'adult-gate-overlay'
-adultGate.hidden = true
-adultGate.setAttribute('role', 'alertdialog')
-adultGate.setAttribute('aria-modal', 'true')
-adultGate.setAttribute('aria-labelledby', 'adult-gate-title')
-adultGate.innerHTML = `
-  <div class="adult-gate-box">
-    <span class="adult-gate-icon">🔞</span>
-    <h2 id="adult-gate-title" class="adult-gate-title">Contenido para mayores de 18 años</h2>
-    <p class="adult-gate-copy">
-      Esta categoría contiene material exclusivo para adultos.
-      Para continuar, confirmá que tenés 18 años o más.
-    </p>
-    <div class="adult-gate-actions">
-      <button type="button" class="adult-gate-btn" data-action="cancel">Volver</button>
-      <button type="button" class="adult-gate-btn adult-gate-btn-accept" data-action="accept">Tengo 18 años o más</button>
-    </div>
-  </div>
-`
-document.body.appendChild(adultGate)
-
-const adultGateButtons = Array.from(adultGate.querySelectorAll<HTMLButtonElement>('.adult-gate-btn'))
-let adultGateFocus = 0
-
-function isAdultGateOpen(): boolean {
-  return !adultGate.hidden
-}
-
-function focusAdultGateButton(index: number): void {
-  adultGateFocus = Math.min(Math.max(index, 0), adultGateButtons.length - 1)
-  adultGateButtons.forEach((button, i) => button.classList.toggle('focused', i === adultGateFocus))
-  adultGateButtons[adultGateFocus]?.focus()
-}
-
-function openAdultGate(): void {
-  adultGate.hidden = false
-  focusAdultGateButton(0) // default to "Volver" so a stray Enter doesn't accept
-}
-
-function closeAdultGate(): void {
-  adultGate.hidden = true
-  focusCategoryTile(focusedCategoryTile)
-}
-
-function acceptAdultGate(): void {
-  adultGate.hidden = true
-  enterGrid(ADULT_CATEGORY)
-}
-
-adultGateButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    if (button.dataset.action === 'accept') acceptAdultGate()
-    else closeAdultGate()
-  })
-})
-
-function handleAdultGateKey(e: KeyboardEvent): void {
-  e.preventDefault()
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') focusAdultGateButton(adultGateFocus - 1)
-  else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') focusAdultGateButton(adultGateFocus + 1)
-  else if (e.key === 'Enter') adultGateButtons[adultGateFocus]?.click()
-  else if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') closeAdultGate()
-}
-
-function requestEnterCategory(filter: CategoryFilter): void {
-  if (filter === ADULT_CATEGORY) {
-    openAdultGate()
-    return
-  }
-  enterGrid(filter)
-}
-
-// ===== Category picker screen =====
-
-const CATEGORY_GRID_COLUMNS = 4
-
-const CATEGORY_LABELS: Record<ChannelV2['category'], { label: string, icon: string }> = {
-  GENERAL: { label: 'General', icon: '📡' },
-  FUTBOL: { label: 'Fútbol', icon: '⚽' },
-  DEPORTES: { label: 'Deportes', icon: '🏆' },
-  PELICULAS: { label: 'Películas y series', icon: '🎬' },
-  INFANTIL: { label: 'Infantiles', icon: '🧸' },
-  DOCUMENTALES: { label: 'Documentales', icon: '🌍' },
-  VARIEDAD: { label: 'Variedades', icon: '✨' },
-  MUSICA: { label: 'Música', icon: '🎵' },
-  INTERIOR: { label: 'Interior', icon: '🏙️' },
-  INTERNACIONAL: { label: 'Internacional', icon: '🌐' },
-  EEUU: { label: 'Estados Unidos', icon: '🇺🇸' },
-  URUGUAY: { label: 'Uruguay', icon: '🇺🇾' },
-  PARAGUAY: { label: 'Paraguay', icon: '🇵🇾' },
-  OTROS: { label: 'Otros', icon: '📻' },
-  MAS: { label: '+18', icon: '🔞' },
-}
-
-interface CategoryTileInfo {
-  key: CategoryFilter
-  label: string
-  icon: string
-  count: number
-}
-
-// Categories are derived from the channel data itself (in first-seen order,
-// which already follows CATEGORY_ORDER from channels-v2) so the picker only
-// shows categories that actually have channels.
-function getAvailableCategories(): CategoryTileInfo[] {
-  const order: string[] = []
-  const counts = new Map<string, number>()
-
-  allChannels.forEach((ch) => {
-    const category = ch.category
-    if (!counts.has(category)) order.push(category)
-    counts.set(category, (counts.get(category) ?? 0) + 1)
-  })
-
-  return order.map((category) => ({
-    key: category as CategoryFilter,
-    label: CATEGORY_LABELS[category as ChannelV2['category']]?.label ?? category,
-    icon: CATEGORY_LABELS[category as ChannelV2['category']]?.icon ?? '📺',
-    count: counts.get(category) ?? 0,
-  }))
-}
-
-let categoryTiles: HTMLButtonElement[] = []
-let focusedCategoryTile = 0
-
-function renderCategoriesScreen(): void {
-  categoriesGrid.innerHTML = ''
-  categoryTiles = []
-
-  const allTile = document.createElement('button')
-  allTile.type = 'button'
-  allTile.className = 'category-tile category-tile-all'
-  allTile.innerHTML = `
-    <span class="category-tile-icon">📺</span>
-    <span class="category-tile-name">Guía completa</span>
-    <span class="category-tile-count">${channels.length} canales</span>
-  `
-  allTile.addEventListener('click', () => enterGrid('ALL'))
-  categoriesGrid.appendChild(allTile)
-  categoryTiles.push(allTile)
-
-  getAvailableCategories().forEach((category) => {
-    const tile = document.createElement('button')
-    tile.type = 'button'
-    tile.className = 'category-tile'
-    tile.innerHTML = `
-      <span class="category-tile-icon">${category.icon}</span>
-      <span class="category-tile-name">${category.label}</span>
-      <span class="category-tile-count">${category.count} canales</span>
-    `
-    tile.addEventListener('click', () => requestEnterCategory(category.key))
-    categoriesGrid.appendChild(tile)
-    categoryTiles.push(tile)
-  })
-}
-
-function focusCategoryTile(index: number): void {
-  if (categoryTiles.length === 0) return
-
-  const clamped = Math.min(Math.max(index, 0), categoryTiles.length - 1)
-  focusedCategoryTile = clamped
-
-  categoryTiles.forEach((tile, i) => {
-    tile.classList.toggle('focused', i === clamped)
-  })
-
-  const target = categoryTiles[clamped]
-  target?.focus()
-  target?.scrollIntoView({ block: 'nearest' })
-}
-
-// The "Guía completa" tile spans its own full row (index 0); the rest fill a
-// regular CATEGORY_GRID_COLUMNS-wide grid starting at row 1.
-function getCategoryTileRowCol(index: number): { row: number, col: number } {
-  if (index === 0) return { row: 0, col: 0 }
-  const i = index - 1
-  return { row: 1 + Math.floor(i / CATEGORY_GRID_COLUMNS), col: i % CATEGORY_GRID_COLUMNS }
-}
-
-function moveCategoryFocus(key: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight'): void {
-  if (categoryTiles.length === 0) return
-  const { row, col } = getCategoryTileRowCol(focusedCategoryTile)
-
-  if (key === 'ArrowUp') {
-    if (focusedCategoryTile === 0) return
-    if (row === 1) {
-      focusCategoryTile(0)
-      return
-    }
-    focusCategoryTile(focusedCategoryTile - CATEGORY_GRID_COLUMNS)
-    return
-  }
-
-  if (key === 'ArrowDown') {
-    if (focusedCategoryTile === 0) {
-      focusCategoryTile(Math.min(1, categoryTiles.length - 1))
-      return
-    }
-    const target = focusedCategoryTile + CATEGORY_GRID_COLUMNS
-    if (target < categoryTiles.length) focusCategoryTile(target)
-    return
-  }
-
-  if (key === 'ArrowLeft') {
-    if (focusedCategoryTile === 0 || col === 0) return
-    focusCategoryTile(focusedCategoryTile - 1)
-    return
-  }
-
-  if (key === 'ArrowRight') {
-    if (focusedCategoryTile === 0) return
-    if (col < CATEGORY_GRID_COLUMNS - 1 && focusedCategoryTile + 1 < categoryTiles.length) {
-      focusCategoryTile(focusedCategoryTile + 1)
-    }
-  }
-}
-
-function getCategoryLabel(filter: CategoryFilter): string {
-  if (filter === 'ALL') return 'Guía completa'
-  return CATEGORY_LABELS[filter]?.label ?? filter
-}
-
-interface NowPlayingInfo {
-  title: string
-  meta: string
-  timeRange: string
-  progress: number
-}
-
-function getNowPlayingInfo(channel: typeof channels[number], nowMinutes: number): NowPlayingInfo | null {
-  const program = normalizeProgramsInSourceOrder(getChannelPrograms(channel)).find((candidate) =>
-    [nowMinutes - GRID_WIDTH_MINUTES, nowMinutes, nowMinutes + GRID_WIDTH_MINUTES].some(
-      (minutes) => minutes >= candidate.startMinutes && minutes < candidate.endMinutes,
-    ),
-  )
-  if (!program) return null
-
-  // Shift "now" into the same day frame as the program to compute progress.
-  const frameNow = [nowMinutes - GRID_WIDTH_MINUTES, nowMinutes, nowMinutes + GRID_WIDTH_MINUTES]
-    .find((minutes) => minutes >= program.startMinutes && minutes < program.endMinutes) ?? nowMinutes
-  const duration = program.endMinutes - program.startMinutes
-  const { title, meta } = splitProgramLabel(program.title)
-
-  return {
-    title,
-    meta,
-    timeRange: `${program.start} - ${program.end}`,
-    progress: duration > 0 ? Math.min(1, Math.max(0, (frameNow - program.startMinutes) / duration)) : 0,
-  }
-}
-
-function fillNowPlaying(card: HTMLElement, channel: typeof channels[number], nowMinutes: number): void {
-  const info = getNowPlayingInfo(channel, nowMinutes)
-  const title = card.querySelector('.now-card-title') as HTMLElement
-  const meta = card.querySelector('.now-card-meta') as HTMLElement
-  const time = card.querySelector('.now-card-time') as HTMLElement
-  const bar = card.querySelector('.now-card-progress-bar') as HTMLElement
-
-  card.classList.toggle('no-program', !info)
-  title.textContent = info?.title ?? 'Sin información de programación'
-  meta.textContent = info?.meta ?? ''
-  time.textContent = info?.timeRange ?? ''
-  bar.style.width = `${Math.round((info?.progress ?? 0) * 100)}%`
-}
-
-function renderNowGrid(filter: CategoryFilter = currentCategoryFilter ?? 'ALL'): void {
-  currentCategoryFilter = filter
-  activeChannels = filter === 'ALL'
-    ? channels
-    : allChannels.filter((channel) => channel.category === filter)
-  gridCategoryLabel.textContent = getCategoryLabel(filter)
-
-  const nowMinutes = getArgentinaNowMinutes()
-  nowGrid.innerHTML = ''
-  nowGridCards = []
-
-  activeChannels.forEach((channel, index) => {
-    const card = document.createElement('button')
-    card.type = 'button'
-    card.className = 'now-card'
-    card.style.setProperty('--channel-color', channel.color)
-    card.innerHTML = `
-      <span class="now-card-head">
-        <span class="now-card-logo" id="grid-logo-${channel.id}"></span>
-        <span class="now-card-channel">
-          <span class="now-card-number">${channel.number}</span>
-          <span class="now-card-name">${channel.name}</span>
-        </span>
-      </span>
-      <span class="now-card-live">&#9679; Ahora</span>
-      <span class="now-card-title"></span>
-      <span class="now-card-meta"></span>
-      <span class="now-card-footer">
-        <span class="now-card-time"></span>
-        <span class="now-card-progress"><span class="now-card-progress-bar"></span></span>
-      </span>
-    `
-    fillNowPlaying(card, channel, nowMinutes)
-    card.addEventListener('click', () => {
-      void openChannel(channel, index)
-    })
-    nowGrid.appendChild(card)
-    nowGridCards.push(card)
-  })
-
-  setChannelLogos(liveGuideLogoMap)
-  if (currentScreen === 'grid') focusGridCard(focusedGridCard)
-}
-
-// Updates program text/progress in place (no re-render, focus untouched).
-function refreshNowGridPrograms(): void {
-  const nowMinutes = getArgentinaNowMinutes()
-  nowGridCards.forEach((card, i) => {
-    const channel = activeChannels[i]
-    if (channel) fillNowPlaying(card, channel, nowMinutes)
-  })
-}
-
-function startNowGridRefresh(): void {
-  stopNowGridRefresh()
-  nowGridRefreshTimer = setInterval(refreshNowGridPrograms, NOW_GRID_REFRESH_MS)
-}
-
-function stopNowGridRefresh(): void {
-  if (nowGridRefreshTimer) clearInterval(nowGridRefreshTimer)
-  nowGridRefreshTimer = null
-}
+// Startup: show the guide immediately; the update check and the program guide
+// load in the background and fill in when they arrive.
+showScreen('guide')
+gridLoadingOverlay.hidden = true
 
 void (async () => {
-  // Check for updates first; if a modal is shown, await dismissal before
-  // rendering the grid so the background doesn't look odd behind the modal.
   try {
     const updateInfo = await checkForUpdates()
+    // The modal swallows keys while open, so the guide underneath is inert.
     if (updateInfo?.hasUpdate) {
       await showUpdateModal(updateInfo)
+      if (currentScreen === 'guide') guideView.restoreFocus()
     }
   } catch (e) {
     console.warn('Update check error:', e)
   }
+})()
 
-  // Build the category picker and reveal it — the (potentially heavy) EPG
-  // grid itself isn't built until the user actually picks "Guía completa" or
-  // a category, keeping startup light regardless of channel count.
-  renderCategoriesScreen()
-  showScreen('categories')
-  gridLoadingOverlay.hidden = true
-
-  // Fetch guide schedule in the background and re-render the grid with
-  // program data, if the user has already entered it.
+void (async () => {
   await fetchGuideSchedule()
-  if (currentCategoryFilter !== null) refreshNowGridPrograms()
+  guideView.refreshPrograms()
   await loadGuideNowPlaying()
   scheduleGuideRefresh()
 })()
 
-// `gridIndex`, when known, is the channel's card position in the current
-// category grid — used so returning to the grid restores focus on the
-// last-viewed channel. Callers outside the grid (channel-up/down, the
-// in-player guide) don't know it, so it's looked up among the rendered cards.
-async function openChannel(channel: typeof channels[number], gridIndex?: number): Promise<void> {
+async function openChannel(channel: ChannelV2): Promise<void> {
   currentChannel = channel
   // -1 for +18 channels (not in the in-player guide list).
   currentChannelIndex = channels.indexOf(channel)
 
-  if (gridIndex !== undefined) {
-    focusedGridCard = gridIndex
-  } else {
-    const renderedIndex = activeChannels.indexOf(channel)
-    if (renderedIndex !== -1) focusedGridCard = renderedIndex
-  }
-
-  overlayChannelNumber.textContent = `${channel.number}`
+  overlayChannelNumber.textContent = channel.number ? `${channel.number}` : ''
   overlayChannelName.textContent = channel.name
 
   const logoUrl = channel.image ?? liveGuideLogoMap[channel.number]
   loadingLogo.style.backgroundImage = logoUrl ? `url('${logoUrl}')` : ''
-  loadingNumber.textContent = `Canal ${channel.number}`
+  loadingNumber.textContent = channel.number ? `Canal ${channel.number}` : ''
   loadingName.textContent = channel.name
 
   showScreen('player')
@@ -1209,18 +824,18 @@ async function returnToGrid(): Promise<void> {
   video.src = ''
   loadingSpinner.hidden = true
   errorOverlay.hidden = true
-  showScreen('grid')
+  showScreen('guide')
 }
 
 async function channelUp(): Promise<void> {
-  const list = activeChannels.length > 0 ? activeChannels : channels
+  const list = guideView.activeChannels
   const index = currentChannel ? list.indexOf(currentChannel) : -1
   closeGuide()
   await openChannel(list[(index + 1) % list.length])
 }
 
 async function channelDown(): Promise<void> {
-  const list = activeChannels.length > 0 ? activeChannels : channels
+  const list = guideView.activeChannels
   const index = currentChannel ? list.indexOf(currentChannel) : 0
   closeGuide()
   await openChannel(list[(index - 1 + list.length) % list.length])
@@ -1286,7 +901,7 @@ function scheduleGuideRefresh(): void {
 
 async function refreshGuideNowPlaying(): Promise<void> {
   await fetchGuideSchedule()
-  if (currentCategoryFilter !== null) refreshNowGridPrograms()
+  guideView.refreshPrograms()
   await loadGuideNowPlaying()
   scheduleGuideRefresh()
 }
@@ -1302,59 +917,9 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 }, { capture: true })
 
 document.addEventListener('keydown', (e: KeyboardEvent) => {
-  if (isAdultGateOpen()) {
-    handleAdultGateKey(e)
+  if (currentScreen === 'guide') {
+    guideView.handleKey(e)
     return
-  }
-
-  if (currentScreen === 'categories') {
-    if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
-      e.preventDefault()
-      const now = Date.now()
-      if (now - lastBackPressTime < DOUBLE_BACK_TIMEOUT) {
-        void closeApp()
-      } else {
-        showBackPressTooltip()
-      }
-      lastBackPressTime = now
-      return
-    }
-
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault()
-      moveCategoryFocus(e.key)
-      return
-    }
-
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      categoryTiles[focusedCategoryTile]?.click()
-      return
-    }
-
-    return
-  }
-
-  if (currentScreen === 'grid') {
-    if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
-      e.preventDefault()
-      returnToCategories()
-      return
-    }
-
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault()
-      const moved = moveGridCardFocus(e.key)
-      if (!moved && e.key === 'ArrowUp') returnToCategories()
-      return
-    }
-
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const channel = activeChannels[focusedGridCard]
-      if (channel) void openChannel(channel, focusedGridCard)
-      return
-    }
   }
 
   if (currentScreen === 'player') {
@@ -1425,31 +990,11 @@ guideItems.forEach((item, i) => {
 })
 
 platformAPI.onBackButton(async () => {
-  if (isAdultGateOpen()) {
-    closeAdultGate()
-    return
-  }
-  const now = Date.now()
-  if (currentScreen === 'categories') {
-    if (now - lastBackPressTime < DOUBLE_BACK_TIMEOUT) {
-      await closeApp()
-    } else {
-      showBackPressTooltip()
-    }
-    lastBackPressTime = now
-    return
-  }
-  if (currentScreen === 'grid') {
-    returnToCategories()
+  if (currentScreen === 'guide') {
+    guideView.handleBack()
+  } else if (isGuideOpen) {
+    closeGuide()
   } else {
-    if (isGuideOpen) {
-      closeGuide()
-    } else {
-      await returnToGrid()
-    }
+    await returnToGrid()
   }
-})
-
-categoriesBackBtn.addEventListener('click', () => {
-  returnToCategories()
 })

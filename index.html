@@ -4,34 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=1920" />
   <title>Argentina TV</title>
-  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4/dist/shaka-player.compiled.js"></script>
+  <link rel="preconnect" href="https://fuchibol-local.vallejo.ar" crossorigin />
+  <!-- defer: don't block first paint on the player library. Deferred scripts
+       run in document order, so it's ready before the module script below. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/shaka-player@4/dist/shaka-player.compiled.js"></script>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
-  <!-- Category Picker Screen -->
-  <div id="screen-categories" class="screen active">
-    <header class="grid-header">
-      <span class="app-title">Argentina TV</span>
-      <span class="live-dot-header">&#9679; EN VIVO</span>
-    </header>
-
-    <div id="categories-content" class="categories-content">
-      <p class="categories-kicker">Elegí qué ver</p>
-      <h1 class="categories-heading">Guía de canales</h1>
-      <div id="categories-grid" class="categories-grid" role="grid" aria-label="Categorías de canales"></div>
-    </div>
-  </div>
-
-  <!-- Channel Grid Screen -->
-  <div id="screen-grid" class="screen">
-    <header class="grid-header">
-      <button id="categories-back-btn" class="categories-back-btn">← Categorías</button>
-      <span id="grid-category-label" class="grid-category-label"></span>
-      <span class="live-dot-header">&#9679; EN VIVO</span>
-    </header>
-
-    <div id="channel-grid" class="channel-grid" role="grid" aria-label="Grilla de canales en vivo"></div>
-  </div>
+  <!-- Guide Screen (built by src/guide-view.ts) -->
+  <div id="screen-guide" class="screen active"></div>
 
   <!-- Player Screen -->
   <div id="screen-player" class="screen">
