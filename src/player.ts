@@ -1,4 +1,7 @@
-import type { Channel } from './channels'
+import type { Channel as LegacyChannel } from './channels'
+
+// Accepts both v1 and v2 channel shapes (v2 uses its own category set).
+type Channel = Omit<LegacyChannel, 'category'> & { category?: string }
 import HLS from 'hls.js'
 
 export interface PlayerCallbacks {
