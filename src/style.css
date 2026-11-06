@@ -820,21 +820,6 @@ button {
   padding: 0 48px 0 20px;
 }
 
-.gv-card-bar {
-  display: block;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.gv-card-bar i {
-  display: block;
-  height: 100%;
-  background: var(--accent-strong);
-  transform: scaleX(0);
-  transform-origin: left center;
-}
-
 /* --- Section header + grid --- */
 .gv-section {
   display: flex;
@@ -879,11 +864,14 @@ button {
   --c: var(--accent-strong);
   position: relative;
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) auto;
+  /* row 1: logo · channel name · number; row 2: program title, full width */
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   align-items: center;
-  gap: 16px;
-  height: 108px;
-  padding: 14px 18px 20px 14px;
+  column-gap: 10px;
+  row-gap: 8px;
+  height: 120px;
+  padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.045);
@@ -891,7 +879,7 @@ button {
   text-align: left;
   cursor: pointer;
   content-visibility: auto;
-  contain-intrinsic-size: auto 108px;
+  contain-intrinsic-size: auto 120px;
   transition: transform 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
 }
 
@@ -912,9 +900,10 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 68px;
-  padding: 8px;
-  border-radius: 12px;
+  width: 64px;
+  height: 40px;
+  padding: 4px;
+  border-radius: 10px;
   /* light enough for dark logos, dark enough for white ones */
   background: rgba(148, 163, 184, 0.2);
 }
@@ -929,62 +918,52 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
   background: var(--c);
   color: #fff;
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-.gv-card-text {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-}
-
 .gv-card-name {
-  font-size: 1.08rem;
+  min-width: 0;
+  font-size: 0.95rem;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Program title spans the whole card width (up to 2 lines). */
 .gv-card-prog {
-  color: var(--muted);
-  font-size: 0.92rem;
-  white-space: nowrap;
+  grid-column: 1 / -1;
+  align-self: start;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 
 .gv-card.no-program .gv-card-prog {
+  color: var(--muted);
+  font-weight: 500;
   opacity: 0.6;
 }
 
 .gv-card-num {
-  align-self: start;
   color: var(--muted);
   font-size: 0.85rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-.gv-card-bar {
-  position: absolute;
-  left: 14px;
-  right: 18px;
-  bottom: 9px;
-  height: 3px;
-}
-
-.gv-card.no-program .gv-card-bar {
-  visibility: hidden;
 }
 
 /* --- +18 locked state & gate --- */

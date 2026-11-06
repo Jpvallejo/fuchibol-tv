@@ -4,21 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=1920" />
   <title>Argentina TV</title>
-  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4/dist/shaka-player.compiled.js"></script>
-  <script type="module" crossorigin src="./assets/index-Bk_Q4cnN.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Bg73_X-7.css">
+  <link rel="preconnect" href="https://fuchibol-local.vallejo.ar" crossorigin />
+  <!-- defer: don't block first paint on the player library. Deferred scripts
+       run in document order, so it's ready before the module script below. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/shaka-player@4/dist/shaka-player.compiled.js"></script>
+  <script type="module" crossorigin src="./assets/index-DrBb7m0v.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BizyjyKL.css">
 </head>
 <body>
-  <!-- Channel Grid Screen -->
-  <div id="screen-grid" class="screen active">
-    <header class="grid-header">
-      <span class="app-title">Argentina TV</span>
-      <button id="mundial-nav-btn" class="mundial-nav-btn">⚽ Mundial</button>
-      <span class="live-dot-header">&#9679; EN VIVO</span>
-    </header>
-
-    <div id="channel-grid" class="channel-grid" role="grid" aria-label="Grilla de canales en vivo"></div>
-  </div>
+  <!-- Guide Screen (built by src/guide-view.ts) -->
+  <div id="screen-guide" class="screen active"></div>
 
   <!-- Player Screen -->
   <div id="screen-player" class="screen">
@@ -47,36 +42,13 @@
         <span id="overlay-channel-number" class="overlay-channel-number"></span>
         <span id="overlay-channel-name" class="overlay-channel-name"></span>
         <span class="overlay-live-badge">&#9679; EN VIVO</span>
+        <span id="overlay-speed-badge" class="overlay-speed-badge" hidden></span>
       </div>
     </div>
 
     <div id="guide-overlay" class="guide-overlay" hidden>
       <div class="guide-header">Guía de canales</div>
       <div id="guide-list" class="guide-list"></div>
-    </div>
-  </div>
-
-  <!-- Mundial Screen -->
-  <div id="screen-mundial" class="screen">
-    <header class="mundial-header">
-      <button id="mundial-back-btn" class="mundial-back-btn">← Volver</button>
-      <span class="mundial-title">⚽ Mundial</span>
-      <span></span>
-    </header>
-    <div id="mundial-content" class="mundial-content"></div>
-
-    <!-- Substream picker overlay -->
-    <div id="mundial-substream-overlay" class="mundial-substream-overlay" hidden>
-      <div class="mundial-substream-panel">
-        <div class="mundial-substream-title" id="mundial-substream-event-name"></div>
-        <div class="mundial-substream-list" id="mundial-substream-list"></div>
-      </div>
-    </div>
-
-    <!-- Iframe overlay -->
-    <div id="mundial-iframe-overlay" class="mundial-iframe-overlay" hidden>
-      <button id="mundial-iframe-close" class="mundial-iframe-close">✕ Cerrar</button>
-      <iframe id="mundial-iframe" class="mundial-iframe" allowfullscreen allow="autoplay; fullscreen"></iframe>
     </div>
   </div>
 

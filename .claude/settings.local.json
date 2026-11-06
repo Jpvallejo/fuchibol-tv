@@ -21,7 +21,8 @@
       "Read(//Users/jpvallejo/Documents/repos/fuchibol/app/api/proxy-hls/**)",
       "Bash(npx tsc *)",
       "Bash(sed -i '' 's/    \\\\/\\\\/ getManifestUrl: \\(\\) => getMundialChannel\\\\\\(.*\\\\\\),/    \\\\/\\\\/ getManifestUrl: \\(\\) => getMundialChannel\\(...\\),\\\\n    getManifestUrl: \\(\\) => \"\",/g' /Users/jpvallejo/Documents/repos/fuchibol-ttv/fuchibol-tv/src/channels.ts)",
-      "Bash(adb -s emulator-5554 install -r app/build/outputs/apk/debug/argentina-tv.apk)"
+      "Bash(adb -s emulator-5554 install -r app/build/outputs/apk/debug/argentina-tv.apk)",
+      "Bash(npx vite *)"
     ],
     "additionalDirectories": [
       "/private/tmp",

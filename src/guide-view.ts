@@ -74,12 +74,9 @@ const cardTemplate = (() => {
   card.type = 'button'
   card.innerHTML = `
     <span class="gv-card-logo"><img alt="" loading="lazy" decoding="async"><span class="gv-initials"></span></span>
-    <span class="gv-card-text">
-      <span class="gv-card-name"></span>
-      <span class="gv-card-prog"></span>
-    </span>
+    <span class="gv-card-name"></span>
     <span class="gv-card-num"></span>
-    <span class="gv-card-bar"><i></i></span>
+    <span class="gv-card-prog"></span>
   `
   return card
 })()
@@ -381,7 +378,6 @@ export class GuideView {
     const info = this.opts.getNowPlaying(channel)
     card.classList.toggle('no-program', !info)
     card.querySelector('.gv-card-prog')!.textContent = info?.title ?? 'Sin programación'
-    ;(card.querySelector('.gv-card-bar i') as HTMLElement).style.transform = `scaleX(${info?.progress ?? 0})`
   }
 
   private setLogo(img: HTMLImageElement, fallback: HTMLElement, channel: ChannelV2): void {
